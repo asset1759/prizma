@@ -20,6 +20,15 @@ export const TAB_BAR_HEIGHT = 82;
 const BAR_H = 72;
 const PAD = 5;
 
+/**
+ * Пружина бегунка. Жёсткая и хорошо задемпфированная: переключатель вкладок
+ * должен успевать за пальцем, а не догонять его. Отдачи быть не должно —
+ * на панели она читается как промах мимо вкладки.
+ */
+const SNAP = { damping: 26, stiffness: 420 } as const;
+/** Прыжок под палец при касании — ещё резче, это реакция, а не переход */
+const JUMP = { damping: 30, stiffness: 520 } as const;
+
 type TabSpec = { key: TabKey; label: string; icon: SFSymbol; iconActive: SFSymbol };
 
 export const TABS: TabSpec[] = [
@@ -72,7 +81,7 @@ export function TabBar({
   // Позиция бегунка вне протяжки — просто по выбранной вкладке.
   const settle = useCallback(
     (index: number) => {
-      x.value = withSpring(index * cellRef.current, { damping: 18, stiffness: 210 });
+      x.value = withSpring(index * cellRef.current, SNAP);
     },
     [x]
   );
@@ -102,7 +111,7 @@ export function TabBar({
           lastHover.current = i;
           setHover(i);
           // Бегунок прыгает под палец сразу — так делает iOS, ждать протяжки не надо.
-          x.value = withSpring(i * c, { damping: 20, stiffness: 260 });
+          x.value = withSpring(i * c, JUMP);
         },
 
         onPanResponderMove: (e) => {
@@ -126,7 +135,7 @@ export function TabBar({
           const i = lastHover.current ?? activeRef.current;
           setHover(null);
           lastHover.current = null;
-          x.value = withSpring(i * cellRef.current, { damping: 18, stiffness: 210 });
+          x.value = withSpring(i * cellRef.current, SNAP);
           if (TABS[i].key !== TABS[activeRef.current].key) onChange(TABS[i].key);
         },
 

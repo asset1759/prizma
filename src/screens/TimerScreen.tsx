@@ -61,6 +61,8 @@ export function TimerScreen({
   const insets = useSafeAreaInsets();
   const scheme: Scheme = useColorScheme() === 'light' ? 'light' : 'dark';
   const spec = PHASES[scheme][phase];
+  /** Длительность текущей фазы — её можно менять регулятором на кольце */
+  const [duration, setDuration] = useState(spec.duration);
   const [left, setLeft] = useState(spec.duration);
 
   const progress = useSharedValue(0);
@@ -97,30 +99,52 @@ export function TimerScreen({
     };
   }, [deepFocus, phase, spec, scheme]);
 
-  const goToPhase = useCallback((next: Phase) => {
-    setPhase(next);
-    // Длительность одинакова в обеих темах — берём из тёмной как из опорной.
-    setLeft(PHASES.dark[next].duration);
-    setRunning(false);
-    setStartedAt(null);
-    progress.value = withTiming(0, { duration: 320 });
-  }, [progress]);
+  /**
+   * Недосчитанные фазы. Ушёл на перерыв в середине сессии — вернёшься
+   * на то же место, а не к полному кругу. Досчитанная фаза из отложенных
+   * убирается: следующий раз она должна начаться заново.
+   */
+  const stash = useRef<Partial<Record<Phase, { left: number; duration: number }>>>({});
 
-  const advance = useCallback(() => {
-    // Сессия кончилась — приложения открываются сами. Ждать действия
-    // от человека тут нельзя: он мог отложить телефон и уйти.
-    if (deepFocus) {
-      stopBlocking();
-      setDeepFocus(false);
-    }
-    if (phase === 'focus') {
-      const nextDone = done + 1;
-      setDone(nextDone);
-      goToPhase(nextDone % SESSIONS_PER_ROUND === 0 ? 'long' : 'short');
-    } else {
-      goToPhase('focus');
-    }
-  }, [phase, done, goToPhase, deepFocus]);
+  const goToPhase = useCallback(
+    (next: Phase, currentCompleted = false) => {
+      if (currentCompleted) delete stash.current[phase];
+      else stash.current[phase] = { left, duration };
+
+      const saved = stash.current[next];
+      // Длительность одинакова в обеих темах — берём из тёмной как из опорной.
+      const d = saved?.duration ?? PHASES.dark[next].duration;
+      const l = saved?.left ?? d;
+
+      setPhase(next);
+      setDuration(d);
+      setLeft(l);
+      setRunning(false);
+      setStartedAt(null);
+      progress.value = withTiming(1 - l / d, { duration: 320 });
+    },
+    [phase, left, duration, progress]
+  );
+
+  const advance = useCallback(
+    (currentCompleted = false) => {
+      // Сессия кончилась — приложения открываются сами. Ждать действия
+      // от человека тут нельзя: он мог отложить телефон и уйти.
+      if (deepFocus) {
+        stopBlocking();
+        setDeepFocus(false);
+      }
+      if (phase === 'focus') {
+        // Круг засчитываем только за досчитанную сессию, не за пропущенную.
+        const nextDone = currentCompleted ? done + 1 : done;
+        if (currentCompleted) setDone(nextDone);
+        goToPhase(nextDone % SESSIONS_PER_ROUND === 0 && currentCompleted ? 'long' : 'short', currentCompleted);
+      } else {
+        goToPhase('focus', currentCompleted);
+      }
+    },
+    [phase, done, goToPhase, deepFocus]
+  );
 
   useEffect(() => {
     if (!running) {
@@ -151,13 +175,25 @@ export function TimerScreen({
 
   // Дуга догоняет отдельно от цифр: секундный скачок выглядел бы дёшево.
   useEffect(() => {
-    progress.value = withTiming(1 - left / spec.duration, { duration: 900 });
-  }, [left, spec.duration, progress]);
+    progress.value = withTiming(1 - left / duration, { duration: 900 });
+  }, [left, duration, progress]);
+
+  /**
+   * Регулятор доступен, пока не потрачено ни секунды. Привязка к startedAt
+   * не годится: после возврата с перерыва он пуст, и случайное касание
+   * стёрло бы восстановленный остаток.
+   */
+  const editable = !running && left === duration;
+
+  const setMinutes = useCallback((m: number) => {
+    setDuration(m * 60);
+    setLeft(m * 60);
+  }, []);
 
   useEffect(() => {
     if (left === 0 && running) {
       setRunning(false);
-      advance();
+      advance(true);
     }
   }, [left, running, advance]);
 
@@ -268,8 +304,25 @@ export function TimerScreen({
               accent={skin.accent}
               accentHi={skin.accentHi}
               track={skin.ink.track}
+              minutes={Math.round(duration / 60)}
+              editable={editable}
+              onChangeMinutes={setMinutes}
+              labelColor={skin.ink.tertiary}
             >
-              <Text style={[styles.clock, { color: skin.ink.primary }]}>{formatClock(left)}</Text>
+              {editable ? (
+                // До старта в центре — выставленная длительность, а не отсчёт:
+                // «25:00» здесь выглядело бы как уже идущая сессия.
+                <>
+                  <Text style={[styles.bigMin, { color: skin.ink.primary }]}>
+                    {Math.round(duration / 60)}
+                  </Text>
+                  <Text style={[styles.minLabel, { color: skin.ink.secondary }]}>МИН</Text>
+                </>
+              ) : (
+                <Text style={[styles.clock, { color: skin.ink.primary }]}>
+                  {formatClock(left)}
+                </Text>
+              )}
             </TimerRing>
           </View>
 
@@ -432,6 +485,19 @@ const styles = StyleSheet.create({
     letterSpacing: -1.4,
     fontVariant: ['tabular-nums'],
     ...Platform.select({ ios: { fontFamily: SERIF } }),
+  },
+  bigMin: {
+    fontSize: 66,
+    letterSpacing: -2,
+    lineHeight: 72,
+    fontVariant: ['tabular-nums'],
+    ...Platform.select({ ios: { fontFamily: SERIF_BOLD } }),
+  },
+  minLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    marginTop: 2,
   },
 
   pips: { flexDirection: 'row', gap: 7, marginTop: 22 },
