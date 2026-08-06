@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootScreen } from './src/RootScreen';
+import { SettingsProvider } from './src/settings';
 
 export default function App() {
   // Системные гарнитуры iOS (New York, SF Pro Rounded) в React Native по имени
@@ -23,7 +24,9 @@ export default function App() {
           В Deep Focus экран темнеет независимо от неё, но это исключение
           на одном экране, и жёстко фиксировать бар из-за него не стоит. */}
       <StatusBar style="auto" />
-      <RootScreen />
+      <SettingsProvider>
+        <RootScreen />
+      </SettingsProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,7 +1,11 @@
 import React, { useMemo, useRef } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import { Canvas, Group, LinearGradient, Path, Skia, vec } from '@shopify/react-native-skia';
-import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
 
@@ -117,10 +121,23 @@ export function TimerRing({
     }
   }
 
-  // Ручка на конце дуги — за неё и тянут.
-  const knobAngle = ((fill * 360 - 90) * Math.PI) / 180;
-  const knobX = CENTER + Math.cos(knobAngle) * R;
-  const knobY = CENTER + Math.sin(knobAngle) * R;
+  /**
+   * Ручка живёт в обоих режимах: до старта за неё тянут, во время сессии
+   * она отмечает текущую точку на круге. Позиция считается в воркл
+   * от анимированного прогресса — иначе во время сессии она дёргалась бы
+   * раз в секунду вместо плавного хода.
+   */
+  const knobStyle = useAnimatedStyle(() => {
+    const p = editable ? fill : progress.value;
+    const a = ((p * 360 - 90) * Math.PI) / 180;
+    return {
+      transform: [
+        { translateX: Math.cos(a) * R },
+        { translateY: Math.sin(a) * R },
+        { rotate: `${p * 360}deg` },
+      ],
+    };
+  });
 
   return (
     <View style={styles.wrap} {...(editable ? pan.panHandlers : {})}>
@@ -183,33 +200,26 @@ export function TimerRing({
         )}
       </Canvas>
 
-      {/* Подписи шкалы — только в режиме регулятора */}
+      {/* Подписи шкалы — только в режиме регулятора: во время сессии
+          они сообщали бы о длительности, которую уже не поменять. */}
       {editable ? (
         <>
           <Label value={MAX_MIN} style={styles.lTop} color={labelColor} />
           <Label value={MAX_MIN / 4} style={styles.lRight} color={labelColor} />
           <Label value={MAX_MIN / 2} style={styles.lBottom} color={labelColor} />
           <Label value={(MAX_MIN / 4) * 3} style={styles.lLeft} color={labelColor} />
-          {/* Стрелка касательная к окружности и всегда по часовой: сверху
-              вправо, справа вниз, слева вверх. Нарисована смотрящей вправо
-              и повёрнута на текущий угол — так она подсказывает, куда
-              крутится шкала, а не просто помечает конец дуги. */}
-          <View
-            style={[
-              styles.knob,
-              {
-                left: knobX - KNOB / 2,
-                top: knobY - KNOB / 2,
-                backgroundColor: accentHi,
-                transform: [{ rotate: `${fill * 360}deg` }],
-              },
-            ]}
-            pointerEvents="none"
-          >
-            <SymbolView name="arrow.right" size={13} tintColor={accent} weight="bold" />
-          </View>
         </>
       ) : null}
+
+      {/* Стрелка касательная к окружности и всегда по часовой: сверху вправо,
+          справа вниз, слева вверх. Нарисована смотрящей вправо и повёрнута
+          на текущий угол — так она подсказывает направление хода. */}
+      <Animated.View
+        style={[styles.knob, { backgroundColor: accentHi }, knobStyle]}
+        pointerEvents="none"
+      >
+        <SymbolView name="arrow.right" size={13} tintColor={accent} weight="bold" />
+      </Animated.View>
 
       <View style={styles.face} pointerEvents="none">
         {children}
@@ -245,6 +255,9 @@ const styles = StyleSheet.create({
   lLeft: { left: STROKE + 10, top: CENTER - 8 },
   knob: {
     position: 'absolute',
+    // Базовая точка — центр кольца, дальше ручку сдвигает transform.
+    left: CENTER - KNOB / 2,
+    top: CENTER - KNOB / 2,
     width: KNOB,
     height: KNOB,
     borderRadius: KNOB / 2,

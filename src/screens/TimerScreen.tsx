@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -24,6 +23,7 @@ import {
 
 import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
+import { useResolvedScheme, useSettings } from '../settings';
 import { TimerRing } from '../components/TimerRing';
 import {
   DEEP_FOCUS,
@@ -38,7 +38,6 @@ import {
   withAlpha,
   type Ambient,
   type Phase,
-  type Scheme,
 } from '../theme';
 
 export function TimerScreen({
@@ -59,11 +58,14 @@ export function TimerScreen({
   const [startedAt, setStartedAt] = useState<Date | null>(null);
 
   const insets = useSafeAreaInsets();
-  const scheme: Scheme = useColorScheme() === 'light' ? 'light' : 'dark';
+  const scheme = useResolvedScheme();
+  const { settings, setDuration: persistDuration } = useSettings();
+  const saved = settings.durations;
+
   const spec = PHASES[scheme][phase];
   /** Длительность текущей фазы — её можно менять регулятором на кольце */
-  const [duration, setDuration] = useState(spec.duration);
-  const [left, setLeft] = useState(spec.duration);
+  const [duration, setDuration] = useState(() => saved.focus);
+  const [left, setLeft] = useState(() => saved.focus);
 
   const progress = useSharedValue(0);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -89,11 +91,11 @@ export function TimerScreen({
       accent: spec.accent,
       accentHi: spec.accentHi,
       canvas: spec.canvas,
-      // Холст сведён почти в ноль. Экран теперь ведут антиква и кольцо,
-      // а насыщенный градиент их глушил: всё расплывалось в цветную кашу.
-      // Оставшегося отсвета хватает ровно на то, чтобы стеклу кнопок
-      // было что преломлять.
-      canvasOpacity: scheme === 'light' ? 0.3 : 0.22,
+      // Холст приглушён: экран ведут антиква и кольцо, а насыщенный градиент
+      // их глушил. Но совсем убирать нельзя — стеклу нужно что преломлять.
+      // В светлой теме доля выше: пастель на белом даёт меньше контраста,
+      // чем те же цвета на чёрном, и кнопки выглядели плоскими карточками.
+      canvasOpacity: scheme === 'light' ? 0.5 : 0.22,
       ink: INK[scheme],
       glassScheme: scheme,
     };
@@ -111,10 +113,10 @@ export function TimerScreen({
       if (currentCompleted) delete stash.current[phase];
       else stash.current[phase] = { left, duration };
 
-      const saved = stash.current[next];
-      // Длительность одинакова в обеих темах — берём из тёмной как из опорной.
-      const d = saved?.duration ?? PHASES.dark[next].duration;
-      const l = saved?.left ?? d;
+      const held = stash.current[next];
+      // Прерванная фаза важнее сохранённой длительности: она уже началась.
+      const d = held?.duration ?? saved[next];
+      const l = held?.left ?? d;
 
       setPhase(next);
       setDuration(d);
@@ -123,7 +125,7 @@ export function TimerScreen({
       setStartedAt(null);
       progress.value = withTiming(1 - l / d, { duration: 320 });
     },
-    [phase, left, duration, progress]
+    [phase, left, duration, progress, saved]
   );
 
   const advance = useCallback(
@@ -185,10 +187,16 @@ export function TimerScreen({
    */
   const editable = !running && left === duration;
 
-  const setMinutes = useCallback((m: number) => {
-    setDuration(m * 60);
-    setLeft(m * 60);
-  }, []);
+  const setMinutes = useCallback(
+    (m: number) => {
+      setDuration(m * 60);
+      setLeft(m * 60);
+      // Выбор запоминается для этой фазы: в следующий раз она начнётся
+      // с той длительности, которую человек выставил, а не с заводской.
+      persistDuration(phase, m * 60);
+    },
+    [phase, persistDuration]
+  );
 
   useEffect(() => {
     if (left === 0 && running) {
@@ -381,7 +389,9 @@ export function TimerScreen({
               style={styles.btnMain}
               radius={28}
               scheme={skin.glassScheme}
-              tint={withAlpha(skin.accent, 0.42)}
+              // На светлом фоне тинт нужен плотнее: тот же процент даёт
+              // пастель, и главное действие перестаёт быть главным.
+              tint={withAlpha(skin.accent, skin.glassScheme === 'light' ? 0.62 : 0.42)}
               dense
             >
               <SymbolView

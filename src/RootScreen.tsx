@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View, useColorScheme } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AmbientCanvas } from './components/AmbientCanvas';
 import { TabBar, type TabKey } from './components/TabBar';
+import { MoreScreen } from './screens/MoreScreen';
 import { StubScreen } from './screens/StubScreen';
 import { TimerScreen } from './screens/TimerScreen';
-import { INK, PHASES, defaultAmbient, type Ambient, type Scheme } from './theme';
+import { useResolvedScheme } from './settings';
+import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
 
 /**
  * Оболочка с вкладками.
@@ -16,7 +18,7 @@ import { INK, PHASES, defaultAmbient, type Ambient, type Scheme } from './theme'
  * кромке и стеклу нечего было бы преломлять.
  */
 export function RootScreen() {
-  const systemScheme: Scheme = useColorScheme() === 'light' ? 'light' : 'dark';
+  const systemScheme = useResolvedScheme();
   const [tab, setTab] = useState<TabKey>('timer');
 
   /**
@@ -55,12 +57,7 @@ export function RootScreen() {
           hint="Сколько часов в фокусе, лучшее время дня, серия дней подряд."
         />
       ) : (
-        <StubScreen
-          scheme={scheme}
-          icon="gearshape"
-          title="Ещё"
-          hint="Длительности сессий, звуки, тема оформления, подписка."
-        />
+        <MoreScreen scheme={scheme} />
       )}
 
       <View style={styles.dock} pointerEvents="box-none">
