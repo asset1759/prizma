@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Генерируется плагином react-native-device-activity при каждом prebuild
+targets/

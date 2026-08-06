@@ -1,17 +1,26 @@
 {
   "expo": {
-    "name": "prizma",
+    "name": "Prizma",
     "slug": "prizma",
-    "version": "1.0.0",
+    "version": "1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "scheme": "kz.asset.focus",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "kz.asset.focus",
+      "appleTeamId": "593MRAYJHB",
+      "infoPlist": {
+        "NSFamilyControlsUsageDescription": "Чтобы закрывать выбранные тобой приложения на время сессии фокуса."
+      },
+      "entitlements": {
+        "com.apple.developer.family-controls": true
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#07080E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +29,24 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ],
+      [
+        "react-native-device-activity",
+        {
+          "appleTeamId": "593MRAYJHB",
+          "appGroup": "group.kz.asset.focus"
+        }
+      ],
+      "expo-font"
+    ]
   }
 }
