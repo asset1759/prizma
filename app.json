@@ -16,8 +16,7 @@
         "NSSupportsLiveActivities": true
       },
       "entitlements": {
-        "com.apple.developer.family-controls": true,
-        "com.apple.developer.usernotifications.time-sensitive": true
+        "com.apple.developer.family-controls": true
       }
     },
     "android": {
@@ -50,7 +49,7 @@
         }
       ],
       "expo-font",
-      "expo-notifications"
+      "./plugins/withLocalNotificationsOnly"
     ]
   }
 }
