@@ -42,11 +42,19 @@ export type Settings = {
   /** Строгий режим: начатую сессию нельзя оборвать */
   strict: boolean;
   /**
+   * Поднимать щит самому при старте фокуса.
+   *
+   * Без этого щит приходится включать вручную перед каждой сессией:
+   * конец фазы гасит Deep Focus, и человек, включивший блокировку
+   * ради того, чтобы не решать заново, решает заново по восемь раз в день.
+   */
+  autoDeep: boolean;
+  /**
    * Сколько отмечено в списке. Держим у себя, а не спрашиваем Screen Time:
    * разбор метаданных уже дважды молчал, и один раз это сломало саму
    * блокировку. Точные числа приходят событием при выборе — их и пишем.
    */
-  listCount: { apps: number; categories: number } | null;
+  listCount: { apps: number; categories: number; sites?: number } | null;
   /** Когда Deep Focus включается сам */
   schedule: Schedule;
   /** Длительности фаз в секундах, выставленные регулятором */
@@ -58,6 +66,7 @@ const DEFAULTS: Settings = {
   language: 'auto',
   appList: 'social',
   strict: false,
+  autoDeep: false,
   listCount: null,
   schedule: DEFAULT_SCHEDULE,
   durations: {
@@ -87,6 +96,7 @@ function loadSync(): Settings {
       language: raw.language ?? DEFAULTS.language,
       appList: raw.appList ?? DEFAULTS.appList,
       strict: raw.strict ?? DEFAULTS.strict,
+      autoDeep: raw.autoDeep ?? DEFAULTS.autoDeep,
       listCount: raw.listCount ?? DEFAULTS.listCount,
       schedule: { ...DEFAULTS.schedule, ...(raw.schedule ?? {}) },
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
@@ -204,7 +214,7 @@ export function useTn() {
   const lang = useLang();
   const t = useT();
   return useCallback(
-    (base: 'apps' | 'cats' | 'sessions' | 'streakD', n: number) =>
+    (base: 'apps' | 'cats' | 'sites' | 'sessions' | 'streakD', n: number) =>
       t(`${base}${pluralForm(lang, n)}` as Key, { n }),
     [lang, t]
   );

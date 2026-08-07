@@ -37,12 +37,39 @@ export const DEFAULT_SCHEDULE: Schedule = {
   to: 12,
 };
 
-/** Имя активности для дня недели. По нему же её потом и снимаем */
-function activityName(day: number): string {
-  return `prizma.schedule.${day}`;
+/**
+ * Имена активностей дня.
+ *
+ * Обычное окно — одна активность. Окно через полночь («с 22 до 7») —
+ * две: вечерняя на выбранном дне и утренняя на следующем. Apple не умеет
+ * интервал, который перешагивает сутки: `intervalEnd` должен быть позже
+ * `intervalStart` в тех же сутках, иначе система молча не заводит
+ * наблюдение вовсе.
+ */
+function activityName(day: number, part?: 'a' | 'b'): string {
+  return part ? `prizma.schedule.${day}.${part}` : `prizma.schedule.${day}`;
 }
 
 const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
+
+/** Следующий день недели по нумерации Apple: 1 — воскресенье, 7 — суббота */
+const nextDay = (d: number) => (d === 7 ? 1 : d + 1);
+
+/** Идёт ли окно прямо сейчас — в том числе если оно перешагнуло полночь */
+export function isWindowOpen(s: Schedule, at = new Date()): boolean {
+  if (!s.on || s.days.length === 0 || s.from === s.to) return false;
+
+  const day = at.getDay() + 1;
+  const hour = at.getHours();
+
+  if (s.from < s.to) return s.days.includes(day) && hour >= s.from && hour < s.to;
+
+  // Через полночь: до полуночи считаем по сегодняшнему дню, после —
+  // по вчерашнему, потому что окно завёл именно он.
+  if (hour >= s.from) return s.days.includes(day);
+  if (hour < s.to) return s.days.includes(day === 1 ? 7 : day - 1);
+  return false;
+}
 
 /**
  * Приводит систему в соответствие с расписанием.
@@ -56,7 +83,7 @@ export async function applySchedule(s: Schedule, list: ListKey) {
   // он мог быть выбран вчера.
   for (const d of ALL_DAYS) {
     try {
-      stopMonitoring([activityName(d)]);
+      stopMonitoring([activityName(d), activityName(d, 'a'), activityName(d, 'b')]);
     } catch {
       // Активности могло не быть — это не ошибка, а обычное состояние.
     }
@@ -64,39 +91,60 @@ export async function applySchedule(s: Schedule, list: ListKey) {
 
   if (!s.on || s.days.length === 0 || s.from === s.to) return;
 
+  const overnight = s.from > s.to;
+
   for (const d of s.days) {
-    const name = activityName(d);
-
-    /**
-     * Что делать на границах окна. Объявляется до того, как окно
-     * наступит: в сам момент приложение может быть выгружено, и спросить
-     * его будет не у кого.
-     */
-    configureActions({
-      activityName: name,
-      callbackName: 'intervalDidStart',
-      actions: [{ type: 'blockSelection', familyActivitySelectionId: listId(list) }],
-    });
-
-    configureActions({
-      activityName: name,
-      callbackName: 'intervalDidEnd',
-      actions: [{ type: 'resetBlocks' }],
-    });
-
-    try {
-      await startMonitoring(
-        name,
-        {
-          intervalStart: { hour: s.from, minute: 0, weekday: d },
-          intervalEnd: { hour: s.to, minute: 0, weekday: d },
-          repeats: true,
-        },
-        []
-      );
-    } catch {
-      // Один упавший день не должен уносить остальные.
+    if (overnight) {
+      // Вечерняя половина: конец суток закрывать не надо — щит снимет
+      // утренняя половина. Иначе между 23:59 и 00:00 приложения на
+      // минуту открывались бы посреди ночного окна.
+      await arm(activityName(d, 'a'), list, d, s.from, 23, 59, false);
+      await arm(activityName(d, 'b'), list, nextDay(d), 0, s.to, 0, true);
+    } else {
+      await arm(activityName(d), list, d, s.from, s.to, 0, true);
     }
+  }
+}
+
+/**
+ * Заводит одну активность.
+ *
+ * Что делать на границах окна, объявляется заранее: в сам момент
+ * приложение может быть выгружено, и спросить его будет не у кого.
+ */
+async function arm(
+  name: string,
+  list: ListKey,
+  weekday: number,
+  fromHour: number,
+  toHour: number,
+  toMinute: number,
+  release: boolean
+) {
+  configureActions({
+    activityName: name,
+    callbackName: 'intervalDidStart',
+    actions: [{ type: 'blockSelection', familyActivitySelectionId: listId(list) }],
+  });
+
+  configureActions({
+    activityName: name,
+    callbackName: 'intervalDidEnd',
+    actions: release ? [{ type: 'resetBlocks' }] : [],
+  });
+
+  try {
+    await startMonitoring(
+      name,
+      {
+        intervalStart: { hour: fromHour, minute: 0, weekday },
+        intervalEnd: { hour: toHour, minute: toMinute, weekday },
+        repeats: true,
+      },
+      []
+    );
+  } catch {
+    // Один упавший день не должен уносить остальные.
   }
 }
 

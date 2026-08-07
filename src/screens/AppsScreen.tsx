@@ -3,12 +3,16 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
-import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-activity';
+import {
+  AuthorizationStatus,
+  DeviceActivitySelectionSheetViewPersisted,
+  useAuthorizationStatus,
+} from 'react-native-device-activity';
 
 import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { ensureAuthorized, listId, listSize } from '../blocking';
-import { applySchedule } from '../schedule';
+import { applySchedule, scheduledCount } from '../schedule';
 import { useSettings, useT, useTn } from '../settings';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
 import type { Key } from '../i18n';
@@ -44,6 +48,18 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const [picking, setPicking] = useState(false);
 
   /**
+   * Разрешение Экранного времени отзывается в системных настройках, не
+   * спрашивая нас. После отзыва экран выглядит совершенно нормально:
+   * выбор открывается, тумблеры ходят, расписание заводится — и не
+   * работает ничего. Это единственное состояние, которое человек не
+   * может обнаружить сам.
+   */
+  const authorized = useAuthorizationStatus() === AuthorizationStatus.approved;
+
+  /** Сколько окон система знает после последнего применения расписания */
+  const [armed, setArmed] = useState<number | null>(null);
+
+  /**
    * Счётчик берём из своих настроек. Запасной путь — спросить Screen Time,
    * он нужен для списков, набранных до того, как мы стали считать сами.
    */
@@ -59,6 +75,10 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
     const parts: string[] = [];
     if (size.apps > 0) parts.push(tn('apps', size.apps));
     if (size.categories > 0) parts.push(tn('cats', size.categories));
+    // Сайты считались в общей сумме, но не сохранялись: выбрав одни
+    // домены, человек читал «Ничего не выбрано» поверх работающей
+    // блокировки — тот же ноль, только вывернутый наизнанку.
+    if ((size.sites ?? 0) > 0) parts.push(tn('sites', size.sites ?? 0));
     return parts.length > 0 ? parts.join(' · ') : t('listEmpty');
   })();
 
@@ -68,7 +88,16 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
    * приложение стёрли, а настройка осталась в файле.
    */
   useEffect(() => {
-    applySchedule(sch, list);
+    let alive = true;
+    applySchedule(sch, list).then(() => {
+      // Пересчитываем после применения, а не до: показать надо не число,
+      // а единственное состояние, которое стоит показывать, — что окна
+      // не завелись вовсе.
+      if (alive) setArmed(scheduledCount());
+    });
+    return () => {
+      alive = false;
+    };
   }, [sch, list]);
 
   /**
@@ -97,6 +126,30 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
       >
         <Text style={[styles.title, { color: ink.primary }]}>{t('appsTitle')}</Text>
 
+        {!authorized ? (
+          <GlassPane style={styles.card} radius={20} scheme={scheme}>
+            <Pressable
+              onPress={openPicker}
+              style={({ pressed }) => [styles.warn, pressed && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <SymbolView
+                name="exclamationmark.triangle.fill"
+                size={16}
+                tintColor={ink.secondary}
+              />
+              <View style={styles.warnText}>
+                <Text style={[styles.rowLabel, { color: ink.primary }]}>
+                  {t('authOff')}
+                </Text>
+                <Text style={[styles.sub, { color: ink.tertiary }]}>
+                  {t('authOffSub')}
+                </Text>
+              </View>
+            </Pressable>
+          </GlassPane>
+        ) : null}
+
         <Text style={[styles.section, { color: ink.tertiary }]}>
           {t('appsWhatToClose')}
         </Text>
@@ -120,6 +173,19 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
 
         <Text style={[styles.section, { color: ink.tertiary }]}>{t('appsHow')}</Text>
         <GlassPane style={styles.card} radius={20} scheme={scheme}>
+          {/* Первой строкой: она отвечает на «когда», а строгий режим и
+              расписание — на «как» и «во сколько». */}
+          <Toggle
+            label={t('autoDeepTitle')}
+            sub={t('autoDeepSub')}
+            on={settings.autoDeep}
+            onPress={() => update({ autoDeep: !settings.autoDeep })}
+            ink={ink}
+            accent={accent}
+          />
+
+          <View style={[styles.divider, { backgroundColor: ink.track }]} />
+
           <Toggle
             label={t('strictTitle')}
             sub={t('strictSub')}
@@ -198,6 +264,25 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
                 ink={ink}
                 accent={accent}
               />
+
+              {/* Три состояния окна, и все три молчат, когда всё хорошо.
+                  «Заведено: 5» показывать нельзя — это плашка со
+                  счётчиком, а такие с экрана уже удаляли. */}
+              {sch.from === sch.to ? (
+                <Text style={[styles.foot, { color: ink.secondary }]}>
+                  {t('scheduleSameTime')}
+                </Text>
+              ) : sch.from > sch.to ? (
+                <Text style={[styles.foot, { color: ink.tertiary }]}>
+                  {t('schOvernight')}
+                </Text>
+              ) : null}
+
+              {armed === 0 && sch.days.length > 0 && sch.from !== sch.to ? (
+                <Text style={[styles.foot, { color: ink.secondary }]}>
+                  {`${t('schedFailed')} · ${t('schedFailedSub')}`}
+                </Text>
+              ) : null}
             </>
           ) : null}
         </GlassPane>
@@ -217,7 +302,11 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
             const total = m.applicationCount + m.categoryCount + m.webDomainCount;
             update({
               listCount: total > 0
-                ? { apps: m.applicationCount, categories: m.categoryCount }
+                ? {
+                    apps: m.applicationCount,
+                    categories: m.categoryCount,
+                    sites: m.webDomainCount,
+                  }
                 : null,
             });
           }}
@@ -352,6 +441,29 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 15.5, fontWeight: '500' },
   rowSub: { fontSize: 12.5, lineHeight: 16 },
   pressed: { opacity: 0.6 },
+
+  // Предупреждение об отозванном разрешении: значок и две строки.
+  warn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  warnText: { flex: 1, gap: 2 },
+  sub: { fontSize: 12.5, lineHeight: 16 },
+  /**
+   * Подпись под расписанием — только для состояний, о которых надо
+   * сказать: окно через полночь, совпавшие часы, не заведённые окна.
+   * Когда всё в порядке, её нет вовсе.
+   */
+  foot: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    paddingHorizontal: 16,
+    paddingTop: 2,
+    paddingBottom: 14,
+  },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
 
   track: { width: 46, height: 28, borderRadius: 14, padding: 3, justifyContent: 'center' },

@@ -75,13 +75,23 @@ export function hasSelection(key: ListKey): boolean {
  * Сколько отмечено — только для показа. `null` значит «нечего показать»,
  * а не «списка нет»: об этом спрашивают у `hasSelection`.
  */
-export function listSize(key: ListKey): { apps: number; categories: number } | null {
+export function listSize(
+  key: ListKey
+): { apps: number; categories: number; sites: number } | null {
   const raw = getFamilyActivitySelectionId(listId(key));
   if (!raw) return null;
   const m = activitySelectionMetadata({ activitySelectionId: listId(key) });
   if (!m) return null;
   const total = m.applicationCount + m.categoryCount + m.webDomainCount;
-  return total > 0 ? { apps: m.applicationCount, categories: m.categoryCount } : null;
+  // Домены считались в сумме и терялись при возврате: выбор из одних
+  // сайтов давал непустой `total` и пустую сводку.
+  return total > 0
+    ? {
+        apps: m.applicationCount,
+        categories: m.categoryCount,
+        sites: m.webDomainCount,
+      }
+    : null;
 }
 
 /**
