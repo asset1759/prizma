@@ -365,6 +365,24 @@ export function TimerScreen({
    */
   const editable = !running && left === duration && !settling;
 
+  /**
+   * Шкала кольца — насечки и подписи — принадлежит регулятору и должна
+   * появляться и уходить вместе с дугой, а не подменяться в конце готовой
+   * картинкой. Длительность та же, что у отмотки и возврата, поэтому
+   * всё кольцо движется как одно целое.
+   *
+   * Во время возврата условие держится за `settling`: регулятором кольцо
+   * ещё не стало, но шкала уже должна проявляться.
+   */
+  const dialOn = useSharedValue(1);
+
+  useEffect(() => {
+    dialOn.value = withTiming(editable || settling ? 1 : 0, {
+      duration: 560,
+      easing: Easing.inOut(Easing.cubic),
+    });
+  }, [editable, settling, dialOn]);
+
   const setMinutes = useCallback(
     (m: number) => {
       setDuration(m * 60);
@@ -607,6 +625,7 @@ export function TimerScreen({
               track={skin.ink.track}
               minutes={Math.round(duration / 60)}
               editable={editable}
+              dialOn={dialOn}
               onChangeMinutes={setMinutes}
               labelColor={skin.ink.tertiary}
             >

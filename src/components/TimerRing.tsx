@@ -51,6 +51,11 @@ export function TimerRing({
   minutes,
   /** Пока true — кольцо работает регулятором, иначе индикатором */
   editable,
+  /**
+   * Насколько кольцо сейчас «регулятор»: 1 — шкала на месте, 0 — её нет.
+   * Ведёт экран, потому что только он знает про переходы старта и сброса.
+   */
+  dialOn,
   onChangeMinutes,
   labelColor,
   children,
@@ -61,6 +66,7 @@ export function TimerRing({
   track: string;
   minutes: number;
   editable: boolean;
+  dialOn: SharedValue<number>;
   onChangeMinutes?: (m: number) => void;
   labelColor: string;
   children?: React.ReactNode;
@@ -71,8 +77,33 @@ export function TimerRing({
     []
   );
 
-  const end = useDerivedValue(() => Math.min(1, Math.max(0, progress.value)));
   const fill = Math.min(1, Math.max(0, minutes / MAX_MIN));
+
+  /**
+   * Единая длина дуги для обоих режимов.
+   *
+   * Раньше их было две — своя у регулятора, своя у прогресса, — и на
+   * переходе одна подменялась другой готовой картинкой. Теперь дуга,
+   * насечки, шкала и ручка считаются от одного значения, поэтому
+   * двигаются вместе и подменять нечего.
+   *
+   * Регулятор берётся без анимации: он обязан идти за пальцем, а не
+   * догонять его. Переходы ведёт экран через `progress`.
+   */
+  const arc = useDerivedValue(() =>
+    editable ? fill : Math.min(1, Math.max(0, progress.value))
+  );
+
+  /**
+   * Обрезка насечек по текущей длине дуги. Путь пересобирается каждый
+   * кадр — иначе шкала проступала бы вся разом поверх ещё короткой дуги,
+   * а именно это и читалось как подмена картинки.
+   */
+  const tickClip = useDerivedValue(() =>
+    Skia.PathBuilder.Make()
+      .addArc(ARC_RECT, -90, Math.max(0.01, arc.value * 360))
+      .detach()
+  );
 
   // Насечки по заполненной части — та самая деталь, из-за которой кольцо
   // читается как шкала, а не как просто дуга.
@@ -128,7 +159,7 @@ export function TimerRing({
    * раз в секунду вместо плавного хода.
    */
   const knobStyle = useAnimatedStyle(() => {
-    const p = editable ? fill : progress.value;
+    const p = arc.value;
     const a = ((p * 360 - 90) * Math.PI) / 180;
     return {
       transform: [
@@ -138,6 +169,9 @@ export function TimerRing({
       ],
     };
   });
+
+  /** Шкала гаснет и загорается вместе с насечками */
+  const scaleStyle = useAnimatedStyle(() => ({ opacity: dialOn.value }));
 
   return (
     <View style={styles.wrap} {...(editable ? pan.panHandlers : {})}>
@@ -150,66 +184,45 @@ export function TimerRing({
           color={track}
         />
 
-        {editable ? (
-          <>
-            {/* Заполненная часть регулятора */}
-            <Path
-              path={path}
-              style="stroke"
-              strokeWidth={STROKE}
-              strokeCap="round"
-              start={0}
-              end={fill}
-            >
-              <LinearGradient
-                start={vec(0, 0)}
-                end={vec(RING_SIZE, RING_SIZE)}
-                colors={[accentHi, accent]}
-              />
-            </Path>
-            {/* Насечки поверх заливки, обрезаны по её длине */}
-            <Group
-              clip={Skia.PathBuilder.Make()
-                .addArc(ARC_RECT, -90, Math.max(0.01, fill * 360))
-                .detach()}
-              layer
-            >
-              <Path
-                path={ticks}
-                style="stroke"
-                strokeWidth={1.4}
-                color="rgba(255,255,255,0.45)"
-              />
-            </Group>
-          </>
-        ) : (
+        {/* Заполненная часть — одна на оба режима */}
+        <Path
+          path={path}
+          style="stroke"
+          strokeWidth={STROKE}
+          strokeCap="round"
+          start={0}
+          end={arc}
+        >
+          <LinearGradient
+            start={vec(0, 0)}
+            end={vec(RING_SIZE, RING_SIZE)}
+            colors={[accentHi, accent]}
+          />
+        </Path>
+
+        {/* Насечки поверх заливки, обрезаны по её текущей длине */}
+        <Group clip={tickClip} opacity={dialOn} layer>
           <Path
-            path={path}
+            path={ticks}
             style="stroke"
-            strokeWidth={STROKE}
-            strokeCap="round"
-            start={0}
-            end={end}
-          >
-            <LinearGradient
-              start={vec(0, 0)}
-              end={vec(RING_SIZE, RING_SIZE)}
-              colors={[accentHi, accent]}
-            />
-          </Path>
-        )}
+            strokeWidth={1.4}
+            color="rgba(255,255,255,0.45)"
+          />
+        </Group>
       </Canvas>
 
-      {/* Подписи шкалы — только в режиме регулятора: во время сессии
-          они сообщали бы о длительности, которую уже не поменять. */}
-      {editable ? (
-        <>
-          <Label value={MAX_MIN} style={styles.lTop} color={labelColor} />
-          <Label value={MAX_MIN / 4} style={styles.lRight} color={labelColor} />
-          <Label value={MAX_MIN / 2} style={styles.lBottom} color={labelColor} />
-          <Label value={(MAX_MIN / 4) * 3} style={styles.lLeft} color={labelColor} />
-        </>
-      ) : null}
+      {/* Подписи шкалы принадлежат регулятору: во время сессии они
+          сообщали бы о длительности, которую уже не поменять. Гаснут
+          не мгновенно, а вместе с насечками и дугой. */}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, scaleStyle]}
+        pointerEvents="none"
+      >
+        <Label value={MAX_MIN} style={styles.lTop} color={labelColor} />
+        <Label value={MAX_MIN / 4} style={styles.lRight} color={labelColor} />
+        <Label value={MAX_MIN / 2} style={styles.lBottom} color={labelColor} />
+        <Label value={(MAX_MIN / 4) * 3} style={styles.lLeft} color={labelColor} />
+      </Animated.View>
 
       {/* Стрелка касательная к окружности и всегда по часовой: сверху вправо,
           справа вниз, слева вверх. Нарисована смотрящей вправо и повёрнута
