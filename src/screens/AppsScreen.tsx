@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
@@ -7,7 +7,7 @@ import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-a
 
 import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
-import { LIST_KEYS, listId, listSize, type ListKey } from '../blocking';
+import { LIST_KEYS, ensureAuthorized, listId, listSize, type ListKey } from '../blocking';
 import { useSettings, useT } from '../settings';
 import { useSubscribed } from '../subscription';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
@@ -43,19 +43,40 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const [editing, setEditing] = useState<ListKey | null>(null);
 
   /**
-   * Счётчики живут в Screen Time, а не у нас, и меняются за нашей спиной —
-   * когда человек закрывает системный экран. Дёргаем перечитывание сами.
+   * Счётчики.
+   *
+   * Основной источник — событие самого экрана Apple: оно приходит на каждую
+   * отметку, поэтому цифра меняется прямо во время выбора, а не после
+   * закрытия. Перечитывание из хранилища оставлено на первый показ —
+   * списки, набранные в прошлые запуски, иначе выглядели бы пустыми.
    */
-  const [tick, setTick] = useState(0);
-  const refresh = useCallback(() => setTick((n) => n + 1), []);
+  type Size = { apps: number; categories: number } | null;
+
+  const [live, setLive] = useState<Partial<Record<ListKey, Size>>>({});
 
   const size = useCallback(
-    (k: ListKey) => {
-      // tick в зависимостях намеренно: он и заставляет перечитать.
-      void tick;
-      return listSize(k);
+    (k: ListKey): Size => (k in live ? live[k]! : listSize(k)),
+    [live]
+  );
+
+  /**
+   * Разрешение спрашиваем до открытия выбора, а не при включении Deep Focus.
+   *
+   * Без него экран Apple рисуется, галочки ставятся — и ничего не
+   * сохраняется: токены приложений просто не выдаются. Человек, зашедший
+   * сюда первым делом, упирался в молчаливый отказ и не понимал, что
+   * сделал не так.
+   */
+  const openPicker = useCallback(
+    async (k: ListKey) => {
+      const ok = await ensureAuthorized();
+      if (!ok) {
+        Alert.alert(t('screenTimeTitle'), t('screenTimeBody'));
+        return;
+      }
+      setEditing(k);
     },
-    [tick]
+    [t]
   );
 
   return (
@@ -137,7 +158,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
                   <Pressable
                     onPress={() => {
                       Haptics.selectionAsync().catch(() => {});
-                      setEditing(k);
+                      openPicker(k);
                     }}
                     style={({ pressed }) => [styles.edit, pressed && styles.pressed]}
                     accessibilityRole="button"
@@ -171,10 +192,21 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           familyActivitySelectionId={listId(editing)}
           headerText={t('pickerHeader')}
           footerText={t('pickerFooter')}
-          onDismissRequest={() => {
-            setEditing(null);
-            refresh();
+          // Отмеченная категория закрывает всё, что в ней есть, включая
+          // то, что человек поставит завтра. Иначе «Общение» означало бы
+          // только те приложения, что были на момент выбора.
+          includeEntireCategory
+          onSelectionChange={(e) => {
+            const m = e.nativeEvent;
+            const total = m.applicationCount + m.categoryCount + m.webDomainCount;
+            setLive((prev) => ({
+              ...prev,
+              [editing]: total > 0
+                ? { apps: m.applicationCount, categories: m.categoryCount }
+                : null,
+            }));
           }}
+          onDismissRequest={() => setEditing(null)}
         />
       ) : null}
     </SafeAreaView>
