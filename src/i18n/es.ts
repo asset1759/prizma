@@ -13,6 +13,7 @@ export const es: Dict = {
 
   minutesShort: 'MIN',
   holdToReset: 'Mantén pulsado para reiniciar',
+  blockingOn: 'Activado',
   blockingOff: 'Desactivado',
   blockedCount: '{count} bloqueadas',
 

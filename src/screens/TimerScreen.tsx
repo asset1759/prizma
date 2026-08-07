@@ -94,7 +94,7 @@ export function TimerScreen({
   const subscribed = useSubscribed();
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
-  const { settings, setDuration: persistDuration } = useSettings();
+  const { settings, update, setDuration: persistDuration } = useSettings();
   const saved = settings.durations;
 
   const spec = PHASES[scheme][phase];
@@ -612,8 +612,14 @@ export function TimerScreen({
     return k ? t(PRESET_LABEL[k]) : t('presetCustom');
   })();
 
-  const blocked = listSize(settings.appList);
-  const blockedCount = blocked ? blocked.apps + blocked.categories : 0;
+  /**
+   * Сколько закрыто. Ноль не показываем никогда: если список не пуст,
+   * а числа нет, честнее сказать «Включено», чем «0 закрыто» — ноль
+   * читается как «ничего не сработало» и подрывает доверие к плашке,
+   * которая как раз и отвечает за то, работает ли блокировка.
+   */
+  const counted = settings.listCount ?? listSize(settings.appList);
+  const blockedCount = counted ? counted.apps + counted.categories : 0;
 
   const refuseStrict = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
@@ -777,7 +783,11 @@ export function TimerScreen({
               weight="medium"
             />
             <Text style={[styles.chipText, { color: skin.ink.primary }]} numberOfLines={1}>
-              {deepFocus ? t('blockedCount', { count: blockedCount }) : t('blockingOff')}
+              {!deepFocus
+                ? t('blockingOff')
+                : blockedCount > 0
+                  ? t('blockedCount', { count: blockedCount })
+                  : t('blockingOn')}
             </Text>
           </GlassPane>
         </View>
@@ -958,8 +968,13 @@ export function TimerScreen({
             includeEntireCategory
             onSelectionChange={(e) => {
               const m = e.nativeEvent;
-              picked.current =
-                m.applicationCount + m.categoryCount + m.webDomainCount > 0;
+              const total = m.applicationCount + m.categoryCount + m.webDomainCount;
+              picked.current = total > 0;
+              update({
+                listCount: total > 0
+                  ? { apps: m.applicationCount, categories: m.categoryCount }
+                  : null,
+              });
             }}
             onDismissRequest={() => {
               setPickerOpen(false);

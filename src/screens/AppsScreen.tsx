@@ -42,10 +42,12 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const sch = settings.schedule;
 
   const [picking, setPicking] = useState(false);
-  /** `undefined` — ещё не спрашивали, `null` — список пуст */
-  const [live, setLive] = useState<{ apps: number; categories: number } | null | undefined>();
 
-  const size = live !== undefined ? live : listSize(list);
+  /**
+   * Счётчик берём из своих настроек. Запасной путь — спросить Screen Time,
+   * он нужен для списков, набранных до того, как мы стали считать сами.
+   */
+  const size = settings.listCount ?? listSize(list);
 
   /**
    * Складываем только из непустого. Раньше выбор одних категорий давал
@@ -213,11 +215,11 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           onSelectionChange={(e) => {
             const m = e.nativeEvent;
             const total = m.applicationCount + m.categoryCount + m.webDomainCount;
-            setLive(
-              total > 0
+            update({
+              listCount: total > 0
                 ? { apps: m.applicationCount, categories: m.categoryCount }
-                : null
-            );
+                : null,
+            });
           }}
           onDismissRequest={() => setPicking(false)}
         />

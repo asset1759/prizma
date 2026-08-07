@@ -33,6 +33,12 @@ export type Settings = {
   appList: ListKey;
   /** Строгий режим: начатую сессию нельзя оборвать */
   strict: boolean;
+  /**
+   * Сколько отмечено в списке. Держим у себя, а не спрашиваем Screen Time:
+   * разбор метаданных уже дважды молчал, и один раз это сломало саму
+   * блокировку. Точные числа приходят событием при выборе — их и пишем.
+   */
+  listCount: { apps: number; categories: number } | null;
   /** Когда Deep Focus включается сам */
   schedule: Schedule;
   /** Длительности фаз в секундах, выставленные регулятором */
@@ -44,6 +50,7 @@ const DEFAULTS: Settings = {
   language: 'auto',
   appList: 'social',
   strict: false,
+  listCount: null,
   schedule: DEFAULT_SCHEDULE,
   durations: {
     focus: PHASES.dark.focus.duration,
@@ -72,6 +79,7 @@ function loadSync(): Settings {
       language: raw.language ?? DEFAULTS.language,
       appList: raw.appList ?? DEFAULTS.appList,
       strict: raw.strict ?? DEFAULTS.strict,
+      listCount: raw.listCount ?? DEFAULTS.listCount,
       schedule: { ...DEFAULTS.schedule, ...(raw.schedule ?? {}) },
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
     };
