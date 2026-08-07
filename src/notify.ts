@@ -97,10 +97,18 @@ export async function schedulePhaseEnd(
   title: string,
   body: string
 ): Promise<void> {
-  try {
-    await cancelPhaseEnd();
-    if (at <= Date.now() + 1000) return;
+  if (at <= Date.now() + 1000) return;
 
+  // Зеркало для Swift пишем сразу и синхронно. Паузу с экрана блокировки
+  // обрабатывает App Intent, где React Native не поднят: пересобрать
+  // запрос он сможет только по готовым строкам.
+  mirror({ on: true, title, body });
+
+  try {
+    // Отдельной отмены перед этим нет намеренно. Уборка эффекта уже
+    // вызвала свою, и вторая асинхронная отмена могла бы прийти позже
+    // постановки и снять её. Запрос с тем же идентификатором система
+    // и так заменяет.
     await Notifications.scheduleNotificationAsync({
       identifier: PHASE_ID,
       content: {
@@ -117,20 +125,15 @@ export async function schedulePhaseEnd(
         date: new Date(at),
       },
     });
-
-    // Зеркало для Swift: паузу с экрана блокировки обрабатывает App Intent,
-    // в процессе которого React Native не поднят. Пересобрать запрос он
-    // сможет только по готовым строкам.
-    mirror({ on: true, title, body });
   } catch {
     // Не поставилось — фаза от этого не сломается.
   }
 }
 
 export async function cancelPhaseEnd(): Promise<void> {
+  mirror({ on: false });
   try {
     await Notifications.cancelScheduledNotificationAsync(PHASE_ID);
-    mirror({ on: false });
   } catch {
     // Нечего было отменять — обычное состояние.
   }

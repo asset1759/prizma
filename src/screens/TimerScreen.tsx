@@ -34,6 +34,7 @@ import {
 import * as LiveActivity from '../../modules/live-activity';
 import { record as recordSession } from '../history';
 import * as Notify from '../notify';
+import { isWindowOpen } from '../schedule';
 
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
@@ -206,7 +207,7 @@ export function TimerScreen({
       // Сессия кончилась — приложения открываются сами. Ждать действия
       // от человека тут нельзя: он мог отложить телефон и уйти.
       if (deepFocus) {
-        stopBlocking();
+        releaseShield.current();
         setDeepFocus(false);
       }
       if (phase === 'focus') {
@@ -676,6 +677,24 @@ export function TimerScreen({
    * этого теперь есть строка. Системный диалог поверх только что начатой
    * сессии — ровно то прерывание, против которого продаётся продукт.
    */
+  /**
+   * Снять щит — но не тогда, когда идёт окно расписания.
+   *
+   * Помидор и расписание закрывают один и тот же список, и снятие «своего»
+   * снимало чужое: конец сессии в 10:25 открывал приложения до полудня
+   * вопреки окну, которое человек завёл и за которое заплатил. Двум платным
+   * функциям на одном экране нельзя отменять друг друга.
+   *
+   * Остаётся неточность, которую здесь не вылечить: щит в это время
+   * продолжает показывать время помидора, а не окна. Для этого щитам
+   * нужны раздельные конфигурации, и это отдельная работа.
+   */
+  const releaseShield = useRef(() => {});
+  releaseShield.current = () => {
+    if (isWindowOpen(settings.schedule)) return;
+    stopBlocking();
+  };
+
   const autoRaise = useRef(() => {});
   autoRaise.current = () => {
     if (!settings.autoDeep || deepFocus || phase !== 'focus') return;
@@ -750,7 +769,7 @@ export function TimerScreen({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
 
     if (deepFocus) {
-      stopBlocking();
+      releaseShield.current();
       setDeepFocus(false);
       return;
     }
@@ -788,7 +807,7 @@ export function TimerScreen({
       return;
     }
     if (deepFocus) {
-      stopBlocking();
+      releaseShield.current();
       setDeepFocus(false);
     }
 
