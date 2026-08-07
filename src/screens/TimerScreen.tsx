@@ -402,6 +402,19 @@ export function TimerScreen({
   // при их появлении. Скачок размера между режимами был ещё одним стыком.
   const numStyle = useAnimatedStyle(() => ({ fontSize: 58 + 8 * dialOn.value }));
 
+  /**
+   * Playfair садится ниже середины своей строки, и тем сильнее, чем мельче
+   * кегль. Замерено по снимкам экрана: 11.7 pt при 58 и 8.0 pt при 66.
+   *
+   * Поэтому поправка не постоянная, а едет вместе с кеглем от той же
+   * величины: иначе число подпрыгивало бы посреди перехода. Числа взяты
+   * из измерения, а не из метрик шрифта — RN пересчитывает их по-своему,
+   * и сходятся только замеры.
+   */
+  const stackStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -(11.7 - 3.7 * dialOn.value) }],
+  }));
+
   const minStyle = useAnimatedStyle(() => ({ opacity: dialOn.value }));
 
   const setMinutes = useCallback(
@@ -653,31 +666,38 @@ export function TimerScreen({
               {/* Минуты стоят на месте, секунды прячутся за ними и оттуда же
                   выезжают. Никакого затухания: окно секунд обрезает всё, что
                   левее, поэтому «:00» буквально выходит из-под числа. */}
-              <View style={styles.faceRow}>
-                <Animated.Text style={[styles.faceNum, numStyle, { color: skin.ink.primary }]}>
-                  {Math.floor(left / 60)}
-                </Animated.Text>
-
-                <Animated.View style={[styles.secWindow, winStyle]}>
+              <Animated.View style={[styles.faceStack, stackStyle]}>
+                <View style={styles.faceRow}>
                   <Animated.Text
-                    style={[
-                      styles.faceNum,
-                      numStyle,
-                      secStyle,
-                      { color: skin.ink.primary, width: secW || undefined },
-                    ]}
-                    numberOfLines={1}
+                    style={[styles.faceNum, numStyle, { color: skin.ink.primary }]}
                   >
-                    {`:${String(left % 60).padStart(2, '0')}`}
+                    {Math.floor(left / 60)}
                   </Animated.Text>
-                </Animated.View>
-              </View>
 
-              <Animated.Text
-                style={[styles.minLabel, minStyle, { color: skin.ink.secondary }]}
-              >
-                МИН
-              </Animated.Text>
+                  <Animated.View style={[styles.secWindow, winStyle]}>
+                    <Animated.Text
+                      style={[
+                        styles.faceNum,
+                        numStyle,
+                        secStyle,
+                        { color: skin.ink.primary, width: secW || undefined },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {`:${String(left % 60).padStart(2, '0')}`}
+                    </Animated.Text>
+                  </Animated.View>
+                </View>
+
+                {/* Подпись висит под числом и в разметке не участвует.
+                    Иначе связка центровалась бы как пара, и само число
+                    стояло бы выше середины кольца. */}
+                <Animated.Text
+                  style={[styles.minLabel, minStyle, { color: skin.ink.secondary }]}
+                >
+                  МИН
+                </Animated.Text>
+              </Animated.View>
 
               {/* Зонд: меряет ширину секунд один раз, чтобы знать, на сколько
                   их прятать. Лежит вне потока и не виден. */}
@@ -853,11 +873,14 @@ const styles = StyleSheet.create({
   },
   ringSlot: { marginTop: 26 },
 
+  // Центруется по числу, а не по паре с подписью: середина кольца должна
+  // приходиться на цифры, они здесь главные.
+  faceStack: { alignItems: 'center' },
   faceRow: { flexDirection: 'row', alignItems: 'center' },
   // Высота задана жёстко: размер шрифта анимируется, и без этого строка
   // дышала бы по высоте вместе с ним.
   faceNum: {
-    lineHeight: 76,
+    lineHeight: 72,
     letterSpacing: -2,
     fontVariant: ['tabular-nums'],
     ...Platform.select({ ios: { fontFamily: SERIF_BOLD } }),
@@ -865,13 +888,14 @@ const styles = StyleSheet.create({
   // Обрезает всё, что уехало за левый край, — за счёт этого секунды
   // и выглядят спрятанными под минутами.
   secWindow: { overflow: 'hidden' },
-  // Подпись занимает место всегда, даже невидимой: иначе число прыгало бы
-  // по вертикали при каждом переходе.
   minLabel: {
+    position: 'absolute',
+    // Отсчитывается от низа строки с числом, а он ниже самих цифр из-за
+    // междустрочного интервала — отсюда запас.
+    bottom: -17,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 2.2,
-    height: 14,
   },
   probe: { position: 'absolute', opacity: 0, fontSize: 58, letterSpacing: -2,
     ...Platform.select({ ios: { fontFamily: SERIF_BOLD } }) },
