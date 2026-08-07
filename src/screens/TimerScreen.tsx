@@ -469,7 +469,9 @@ export function TimerScreen({
     // до последнего и анимацию теряет.
     flash.value = withSequence(
       withTiming(0, { duration: 0 }),
-      withTiming(1, { duration: 1100, easing: Easing.out(Easing.cubic) })
+      // Ровный ход: разгон и торможение съедали середину пути, где луч
+      // как раз и виден лучше всего.
+      withTiming(1, { duration: 1500, easing: Easing.linear })
     );
 
     if (endTimer.current) clearTimeout(endTimer.current);
@@ -478,7 +480,7 @@ export function TimerScreen({
      * собирать шкалу прямо под лучом. К этому моменту луч уже гаснет,
      * так что переход подхватывает его, а не перебивает.
      */
-    endTimer.current = setTimeout(() => advance(true), 850);
+    endTimer.current = setTimeout(() => advance(true), 1350);
   }, [left, running, advance, flash]);
 
   // Чистим только при размонтировании. Возврат из самого эффекта не годится:

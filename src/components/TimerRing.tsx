@@ -195,13 +195,19 @@ export function TimerRing({
    * в конце туда же и втягивается — обрывов не видно.
    */
   const beamEnd = useDerivedValue(() => flash.value);
-  const beamStart = useDerivedValue(() => Math.max(0, flash.value - 0.16));
+  const beamStart = useDerivedValue(() => Math.max(0, flash.value - 0.22));
 
-  /** Разгорается быстро, гаснет плавно — чтобы след читался, а не мигал */
+  /**
+   * Яркость держится почти весь путь и убирается только у самых краёв.
+   *
+   * Раньше она гасла с середины круга, и вместе с быстрым разгоном это
+   * означало, что ярким луч бывает только в первые триста миллисекунд —
+   * то есть практически никогда.
+   */
   const beamOpacity = useDerivedValue(() => {
     const p = flash.value;
     if (p <= 0 || p >= 1) return 0;
-    return Math.min(1, p * 8) * Math.min(1, (1 - p) * 2.5);
+    return Math.min(1, p * 12) * Math.min(1, (1 - p) * 6);
   });
 
   /** Шкала гаснет и загорается вместе с насечками */
@@ -237,6 +243,27 @@ export function TimerRing({
         {/* Призма: в конце сессии по кольцу один раз пробегает спектр.
             Рисуется поверх всего — это событие, а не состояние. */}
         <Group opacity={beamOpacity}>
+          {/* Свечение шире кольца — свет обязан выходить за кромку,
+              иначе луч читается как подкраска, а не как источник. */}
+          <Path
+            path={path}
+            style="stroke"
+            strokeWidth={STROKE + 16}
+            strokeCap="round"
+            start={beamStart}
+            end={beamEnd}
+            opacity={0.55}
+          >
+            <SweepGradient
+              c={vec(CENTER, CENTER)}
+              colors={SPECTRUM}
+              start={-90}
+              end={270}
+            />
+            <BlurMask blur={14} style="normal" />
+          </Path>
+
+          {/* Ядро — плотная полоса поверх свечения */}
           <Path
             path={path}
             style="stroke"
@@ -251,8 +278,7 @@ export function TimerRing({
               start={-90}
               end={270}
             />
-            {/* Свечение, а не плоская полоса: призма про свет */}
-            <BlurMask blur={5} style="solid" />
+            <BlurMask blur={2} style="solid" />
           </Path>
         </Group>
 
