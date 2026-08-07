@@ -66,6 +66,19 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
     setOpen((prev) => (prev === k ? null : k));
   };
 
+  /**
+   * Выбрал — раздел закрывается.
+   *
+   * Выбор здесь всегда один из нескольких, и после него в разделе делать
+   * нечего. Свёрнутая строка тут же показывает выбранное в заголовке,
+   * так что подтверждение человек всё равно видит — а экран возвращается
+   * к списку разделов, вместо того чтобы оставлять открытым отработавший.
+   */
+  const pick = (patch: Parameters<typeof update>[0]) => {
+    update(patch);
+    setOpen(null);
+  };
+
   const min = (s: number) => Math.round(s / 60);
   const set = (d: Record<'focus' | 'short' | 'long', number>) =>
     `${min(d.focus)} · ${min(d.short)} · ${min(d.long)}`;
@@ -103,7 +116,7 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
               key={m.key}
               label={t(m.label)}
               on={settings.themeMode === m.key}
-              onPress={() => update({ themeMode: m.key })}
+              onPress={() => pick({ themeMode: m.key })}
               ink={ink}
               accent={accent}
             />
@@ -125,7 +138,7 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
               label={t(PRESET_LABEL[k])}
               value={set(PRESETS[k])}
               on={current === k}
-              onPress={() => update({ durations: { ...PRESETS[k] } })}
+              onPress={() => pick({ durations: { ...PRESETS[k] } })}
               ink={ink}
               accent={accent}
             />
@@ -162,7 +175,7 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
               key={l}
               label={l === 'auto' ? t('languageAuto') : LANG_NAMES[l]}
               on={settings.language === l}
-              onPress={() => update({ language: l })}
+              onPress={() => pick({ language: l })}
               ink={ink}
               accent={accent}
             />
