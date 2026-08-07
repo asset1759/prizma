@@ -50,7 +50,7 @@ export const de: Dict = {
   presetDeep: 'Tiefe Arbeit',
   presetBrief: 'Leichter Start',
   presetCustom: 'Eigene',
-  presetLocked: 'Eigene Dauern gibt es im Abo. Der Ring bleibt frei — er stellt die laufende Phase ein.',
+  presetLocked: 'Der Ring ist frei — dreh ihn jederzeit, er ändert die laufende Phase. Das eigene Dreierset zu behalten gehört zum Abo.',
   hintDurations: 'Am Ring eingestellt und zwischen den Starts gemerkt.',
 
   shieldTitle: 'Du bist im Deep Focus',

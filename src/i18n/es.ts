@@ -50,7 +50,7 @@ export const es: Dict = {
   presetDeep: 'Trabajo profundo',
   presetBrief: 'Empezar fácil',
   presetCustom: 'Personalizado',
-  presetLocked: 'Las duraciones propias vienen con la suscripción. El anillo sigue siendo gratis: ajusta la fase actual.',
+  presetLocked: 'El anillo es gratis: gíralo cuando quieras, cambia la fase actual. Guardar tu propio conjunto de tres va con la suscripción.',
   hintDurations: 'Se ajustan en el anillo y se recuerdan entre sesiones.',
 
   shieldTitle: 'Estás en Deep Focus',

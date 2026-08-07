@@ -50,7 +50,7 @@ export const fr: Dict = {
   presetDeep: 'Travail profond',
   presetBrief: 'Départ facile',
   presetCustom: 'Personnalisé',
-  presetLocked: 'Les durées personnalisées viennent avec l’abonnement. L’anneau reste libre : il règle la phase en cours.',
+  presetLocked: 'L’anneau est libre : tournez-le quand vous voulez, il règle la phase en cours. Garder votre propre trio fait partie de l’abonnement.',
   hintDurations: 'Réglées sur l’anneau et gardées d’un lancement à l’autre.',
 
   shieldTitle: 'Vous êtes en Deep Focus',

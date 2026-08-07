@@ -13,6 +13,7 @@ import Animated, {
 import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useSettings, useT, type ThemeMode } from '../settings';
+import { useSubscribed } from '../subscription';
 import { LANGS, LANG_NAMES, resolveLang, type Key, type LangSetting } from '../i18n';
 import {
   INK,
@@ -52,6 +53,7 @@ type SectionKey = 'appearance' | 'durations' | 'language';
  */
 export function MoreScreen({ scheme }: { scheme: Scheme }) {
   const t = useT();
+  const subscribed = useSubscribed();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const ink = INK[scheme];
@@ -136,7 +138,7 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
             label={t('presetCustom')}
             value={current === null ? set(settings.durations) : undefined}
             on={current === null}
-            locked
+            locked={!subscribed}
             onPress={() => {}}
             ink={ink}
             accent={accent}

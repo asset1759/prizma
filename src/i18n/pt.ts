@@ -51,7 +51,7 @@ export const pt: Dict = {
   presetDeep: 'Trabalho profundo',
   presetBrief: 'Começo leve',
   presetCustom: 'Personalizado',
-  presetLocked: 'Durações próprias vêm com a assinatura. O anel continua livre: ele ajusta a fase atual.',
+  presetLocked: 'O anel é livre: gire quando quiser, ele muda a fase atual. Guardar o seu próprio conjunto dos três faz parte da assinatura.',
   hintDurations: 'Ajustadas no anel e lembradas entre as sessões.',
 
   shieldTitle: 'Você está em Deep Focus',

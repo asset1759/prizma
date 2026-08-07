@@ -63,7 +63,7 @@ export const en = {
   presetDeep: 'Deep work',
   presetBrief: 'Easy start',
   presetCustom: 'Custom',
-  presetLocked: 'Your own durations come with the subscription. The ring dial stays free — it sets the current phase.',
+  presetLocked: 'The ring dial is free — turn it any time, it changes the current phase. Keeping your own set of three is part of the subscription.',
   hintDurations: 'Set on the ring dial and remembered between launches.',
 
   // Щит Screen Time

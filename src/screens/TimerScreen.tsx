@@ -36,6 +36,7 @@ import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useResolvedScheme, useSettings, useT } from '../settings';
+import { useSubscribed } from '../subscription';
 import { MAX_MIN, TimerRing } from '../components/TimerRing';
 import {
   DEEP_FOCUS,
@@ -82,6 +83,7 @@ export function TimerScreen({
   const [now, setNow] = useState(() => Date.now());
 
   const t = useT();
+  const subscribed = useSubscribed();
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
   const { settings, setDuration: persistDuration } = useSettings();
@@ -390,7 +392,15 @@ export function TimerScreen({
    * Только на нетронутой фазе: перебивать идущую или отложенную сессию
    * настройкой нельзя, это стёрло бы уже сделанное.
    */
+  const lastSaved = useRef(saved);
+
   useEffect(() => {
+    // Только на настоящее изменение настроек. Без этой сверки эффект
+    // срабатывал бы и на кручение регулятора и тут же возвращал бы
+    // длительность к сохранённой — ручка отскакивала бы из-под пальца.
+    if (lastSaved.current === saved) return;
+    lastSaved.current = saved;
+
     if (running || left !== duration) return;
     const next = saved[phase];
     if (next === duration) return;
@@ -456,11 +466,15 @@ export function TimerScreen({
     (m: number) => {
       setDuration(m * 60);
       setHeld(m * 60);
-      // Выбор запоминается для этой фазы: в следующий раз она начнётся
-      // с той длительности, которую человек выставил, а не с заводской.
-      persistDuration(phase, m * 60);
+      /**
+       * Запоминаем только по подписке. Регулятор бесплатный — крутить
+       * может кто угодно, — но выставленное живёт до конца текущей фазы.
+       * Платится не длительность, а её память: получить своё сочетание
+       * обратно завтра и есть то, за что просят денег.
+       */
+      if (subscribed) persistDuration(phase, m * 60);
     },
-    [phase, persistDuration]
+    [phase, persistDuration, subscribed]
   );
 
   /**
