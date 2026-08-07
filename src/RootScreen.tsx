@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AmbientCanvas } from './components/AmbientCanvas';
 import { TabBar, type TabKey } from './components/TabBar';
+import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { StubScreen } from './screens/StubScreen';
 import { TimerScreen } from './screens/TimerScreen';
@@ -49,12 +50,7 @@ export function RootScreen() {
       </Pane>
 
       <Pane active={tab === 'apps'}>
-        <StubScreen
-          scheme={scheme}
-          icon="square.grid.2x2"
-          title={t('appsTitle')}
-          hint={t('appsHint')}
-        />
+        <AppsScreen scheme={scheme} />
       </Pane>
 
       <Pane active={tab === 'stats'}>

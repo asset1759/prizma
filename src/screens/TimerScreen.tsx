@@ -22,10 +22,10 @@ import Animated, {
 import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-activity';
 
 import {
-  SELECTION_ID,
   dressShield,
   ensureAuthorized,
   hasSelection,
+  listId,
   startBlocking,
   stopBlocking,
 } from '../blocking';
@@ -570,9 +570,9 @@ export function TimerScreen({
   }, [running, left, duration, progress]);
 
   const enableDeep = useCallback(() => {
-    startBlocking(t, formatEndTime(left));
+    startBlocking(t, settings.appList, formatEndTime(left));
     setDeepFocus(true);
-  }, [left, t]);
+  }, [left, t, settings.appList]);
 
   const toggleDeep = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
@@ -593,13 +593,13 @@ export function TimerScreen({
     }
 
     // Первый раз — сначала выбор приложений, блокировать пока нечего.
-    if (!hasSelection()) {
+    if (!hasSelection(settings.appList)) {
       setPickerOpen(true);
       return;
     }
 
     enableDeep();
-  }, [deepFocus, enableDeep]);
+  }, [deepFocus, enableDeep, settings.appList]);
 
   /**
    * Сброс возвращает текущую фазу к началу — не переключает на следующую.
@@ -891,19 +891,17 @@ export function TimerScreen({
           </View>
         </View>
 
-        {/* Системный выбор приложений Apple. Оформить его нельзя —
-            поэтому в макете он спрятан за пресетами, но для первой
-            проверки блокировки открываем как есть. */}
+        {/* Системный выбор Apple, если список ещё пуст. Обычно его правят
+            на вкладке «Приложения», но не гнать же туда человека, который
+            уже нажал Deep Focus. */}
         {pickerOpen ? (
           <DeviceActivitySelectionSheetViewPersisted
-            familyActivitySelectionId={SELECTION_ID}
+            familyActivitySelectionId={listId(settings.appList)}
             headerText={t('pickerHeader')}
             footerText={t('pickerFooter')}
             onDismissRequest={() => {
               setPickerOpen(false);
-              if (hasSelection()) {
-                enableDeep();
-              }
+              if (hasSelection(settings.appList)) enableDeep();
             }}
           />
         ) : null}

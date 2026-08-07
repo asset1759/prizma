@@ -42,9 +42,17 @@ export const en = {
   pickerFooter: 'Calls, messages and maps stay available at all times.',
 
   // Заглушки вкладок
+  listSocial: 'Social',
+  listGames: 'Games',
+  listCustom: 'My list',
+  listEmpty: 'not set',
+  listCount: '{apps} apps',
+  listCountWithCategories: '{apps} apps · {categories} categories',
+  listEdit: 'Choose apps',
+  appsIntro: 'Deep Focus closes what is in the chosen list.',
+  appsPickerNote: 'Apple never shows us which apps you have — you pick them yourself on its screen. We only remember the choice and give the list a name.',
+  appsMultipleLocked: 'Several lists come with the subscription. One is free.',
   appsTitle: 'Apps',
-  appsHint:
-    'App sets will live here: social, games, everything but calls. For now the list is picked in the system sheet when Deep Focus starts.',
   statsTitle: 'Stats',
   statsHint: 'Hours in focus, your best time of day, streak of days in a row.',
 

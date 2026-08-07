@@ -9,6 +9,7 @@ import {
   type Lang,
   type LangSetting,
 } from './i18n';
+import type { ListKey } from './blocking';
 import { PHASES, type Phase, type Scheme } from './theme';
 
 /**
@@ -26,6 +27,8 @@ export type Settings = {
   themeMode: ThemeMode;
   /** «auto» — следовать языку телефона */
   language: LangSetting;
+  /** Какой список приложений закрывает Deep Focus */
+  appList: ListKey;
   /** Длительности фаз в секундах, выставленные регулятором */
   durations: Record<Phase, number>;
 };
@@ -33,6 +36,7 @@ export type Settings = {
 const DEFAULTS: Settings = {
   themeMode: 'auto',
   language: 'auto',
+  appList: 'social',
   durations: {
     focus: PHASES.dark.focus.duration,
     short: PHASES.dark.short.duration,
@@ -58,6 +62,7 @@ function loadSync(): Settings {
     return {
       themeMode: raw.themeMode ?? DEFAULTS.themeMode,
       language: raw.language ?? DEFAULTS.language,
+      appList: raw.appList ?? DEFAULTS.appList,
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
     };
   } catch {

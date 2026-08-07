@@ -31,9 +31,17 @@ export const pt: Dict = {
   pickerHeader: 'O que fechar durante a sessão',
   pickerFooter: 'Chamadas, mensagens e mapas continuam disponíveis sempre.',
 
+  listSocial: 'Redes',
+  listGames: 'Jogos',
+  listCustom: 'Minha lista',
+  listEmpty: 'não definida',
+  listCount: '{apps} apps',
+  listCountWithCategories: '{apps} apps · {categories} categorias',
+  listEdit: 'Escolher apps',
+  appsIntro: 'O Deep Focus fecha o que estiver na lista escolhida.',
+  appsPickerNote: 'A Apple nunca nos mostra quais apps você tem — você os marca na tela dela. Nós apenas guardamos a escolha e damos um nome à lista.',
+  appsMultipleLocked: 'Várias listas vêm com a assinatura. Uma é grátis.',
   appsTitle: 'Apps',
-  appsHint:
-    'Aqui vão ficar os conjuntos de apps: redes sociais, jogos, tudo menos chamadas. Por enquanto a lista é escolhida na tela do sistema ao ligar o Deep Focus.',
   statsTitle: 'Resumo',
   statsHint: 'Horas em foco, seu melhor horário do dia, sequência de dias seguidos.',
 

@@ -1,5 +1,6 @@
 import {
   UIBlurEffectStyle,
+  activitySelectionMetadata,
   blockSelection,
   getFamilyActivitySelectionId,
   isShieldActive,
@@ -18,8 +19,35 @@ import type { T } from './settings';
  * не поднимается вообще, ошибок при этом не даёт — просто ничего не делает.
  */
 
-/** Один сохранённый набор приложений на весь Deep Focus */
-export const SELECTION_ID = 'deepFocus';
+/**
+ * Списки приложений.
+ *
+ * Заполнить их за человека нельзя: Apple выдаёт токены приложений только
+ * через свой экран выбора, и наружу они непрозрачны. Ни одно приложение
+ * не может собрать «Соцсети» само — можно лишь дать списку имя, объяснить,
+ * что в него класть, и запомнить выбранное.
+ *
+ * Поэтому здесь только имена и хранилище. Содержимое приносит Apple.
+ */
+export type ListKey = 'social' | 'games' | 'custom';
+
+export const LIST_KEYS: ListKey[] = ['social', 'games', 'custom'];
+
+/** Идентификатор хранения — по нему Screen Time помнит выбор */
+export function listId(key: ListKey): string {
+  return `deepFocus.${key}`;
+}
+
+/** Сколько всего отмечено в списке. `null` — список ещё не заполняли */
+export function listSize(key: ListKey): { apps: number; categories: number } | null {
+  const raw = getFamilyActivitySelectionId(listId(key));
+  if (!raw) return null;
+  // Метаданные принимают сам токен выбора, а не строку-идентификатор.
+  const m = activitySelectionMetadata({ activitySelectionToken: raw });
+  if (!m) return null;
+  const total = m.applicationCount + m.categoryCount + m.webDomainCount;
+  return total > 0 ? { apps: m.applicationCount, categories: m.categoryCount } : null;
+}
 
 /**
  * Фраза выбирается один раз на сессию, а не на каждый показ щита: внутри
@@ -71,8 +99,8 @@ export async function ensureAuthorized(): Promise<boolean> {
   }
 }
 
-export function hasSelection(): boolean {
-  return Boolean(getFamilyActivitySelectionId(SELECTION_ID));
+export function hasSelection(key: ListKey): boolean {
+  return listSize(key) !== null;
 }
 
 export function isBlocking(): boolean {
@@ -125,12 +153,12 @@ export function dressShield(t: T, endsAt: string) {
   );
 }
 
-export function startBlocking(t: T, endsAt: string) {
+export function startBlocking(t: T, key: ListKey, endsAt: string) {
   // Новая сессия — новая фраза. Повторять её изо дня в день бессмысленно:
   // на третий раз человек перестаёт её читать.
   phrase = pickEncouragement(t);
   dressShield(t, endsAt);
-  blockSelection({ activitySelectionId: SELECTION_ID }, 'deep-focus-on');
+  blockSelection({ activitySelectionId: listId(key) }, 'deep-focus-on');
 }
 
 export function stopBlocking() {
