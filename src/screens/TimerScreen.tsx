@@ -11,7 +11,11 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-activity';
 
 import {
@@ -23,6 +27,7 @@ import {
 } from '../blocking';
 
 import { GlassPane } from '../components/GlassPane';
+import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useResolvedScheme, useSettings } from '../settings';
 import { TimerRing } from '../components/TimerRing';
@@ -112,6 +117,11 @@ export function TimerScreen({
    * Недосчитанные фазы. Ушёл на перерыв в середине сессии — вернёшься
    * на то же место, а не к полному кругу. Досчитанная фаза из отложенных
    * убирается: следующий раз она должна начаться заново.
+   *
+   * ВНИМАНИЕ: заполнять этот тайник сейчас некому. Единственным входом
+   * был «Пропустить», а его заменил сброс, который отложенное как раз
+   * стирает. Механизм оставлен под будущий досрочный выход из фазы —
+   * пока он просто ни разу не срабатывает.
    */
   const stash = useRef<Partial<Record<Phase, { left: number; duration: number }>>>({});
 
@@ -290,10 +300,62 @@ export function TimerScreen({
     enableDeep();
   }, [deepFocus, enableDeep]);
 
-  const skip = useCallback(() => {
-    Haptics.selectionAsync().catch(() => {});
-    advance();
-  }, [advance]);
+  /**
+   * Сброс возвращает текущую фазу к началу — не переключает на следующую.
+   * Круги пройденных сессий не трогаем: человек отменил один заход,
+   * а не отказался от всего сделанного за день.
+   *
+   * Deep Focus снимается вместе с сессией: держать приложения закрытыми
+   * ради таймера, который уже обнулён, не за чем.
+   */
+  const reset = useCallback(() => {
+    if (deepFocus) {
+      stopBlocking();
+      setDeepFocus(false);
+    }
+    delete stash.current[phase];
+    setRunning(false);
+    setStartedAt(null);
+    // Длительность остаётся выставленной: сбрасывается ход, а не настройка.
+    setLeft(duration);
+    // Дугу отматывает эффект, следящий за left — отдельно её здесь не трогаем.
+  }, [deepFocus, phase, duration]);
+
+  /**
+   * Подсказка про удержание. Живёт здесь, а не в кнопке: ей нужно место
+   * над доком, и висеть она должна ещё секунду после того, как палец
+   * убрали — иначе при быстром тычке текст мелькнёт и его не прочитают.
+   */
+  const [hintOn, setHintOn] = useState(false);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hint = useSharedValue(0);
+
+  const handleHold = useCallback((holding: boolean) => {
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    if (holding) {
+      setHintOn(true);
+      return;
+    }
+    // Полторы секунды на прочтение: при быстром тычке подсказка иначе
+    // мелькнёт вместе с пальцем, а именно этот случай её и вызывает.
+    hintTimer.current = setTimeout(() => setHintOn(false), 1800);
+  }, []);
+
+  useEffect(() => {
+    hint.value = withTiming(hintOn ? 1 : 0, { duration: 200 });
+  }, [hintOn, hint]);
+
+  useEffect(() => () => {
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+  }, []);
+
+  const hintStyle = useAnimatedStyle(() => ({
+    opacity: hint.value,
+    transform: [{ translateY: (1 - hint.value) * 6 }],
+  }));
+
+  /** Сбрасывать нечего, пока фаза стоит нетронутой на полном круге */
+  const canReset = running || left < duration;
 
   useEffect(() => {
     onAmbientChange?.({
@@ -400,76 +462,80 @@ export function TimerScreen({
         {/* Управление — единственный стеклянный слой на экране. Тень поднимает
             кнопки над фоном: без неё материал читается как вырез в подложке,
             а не как предмет, лежащий сверху. */}
-        <View style={styles.dockRow}>
-          <Pressable
-            onPress={skip}
-            disabled={deepFocus && running}
-            style={({ pressed }) => [styles.lift, pressed && styles.btnPressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Пропустить фазу"
+        <View style={styles.dockWrap}>
+          {/* Подсказка absolute: появись она в потоке, док подпрыгивал бы
+              на каждое касание. */}
+          <Animated.Text
+            style={[styles.hint, hintStyle, { color: skin.ink.secondary }]}
+            pointerEvents="none"
           >
-            <GlassPane
-              style={[styles.btnSide, deepFocus && running && styles.btnOff]}
-              radius={22}
-              scheme={skin.glassScheme}
-            >
-              <SymbolView
-                name="forward.end.fill"
-                size={22}
-                tintColor={skin.ink.primary}
-                weight="medium"
-              />
-            </GlassPane>
-          </Pressable>
+            Держите, чтобы сбросить
+          </Animated.Text>
 
-          <Pressable
-            onPress={toggleRun}
-            style={({ pressed }) => [styles.liftMain, pressed && styles.btnPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={running ? 'Пауза' : 'Начать'}
-          >
-            {/* Главное действие тоже стекло — выделяется плотностью материала
-                и тинтом фазы, а не сплошной заливкой. */}
-            <GlassPane
-              style={styles.btnMain}
-              radius={28}
-              scheme={skin.glassScheme}
-              // На светлом фоне тинт нужен плотнее: тот же процент даёт
-              // пастель, и главное действие перестаёт быть главным.
-              tint={withAlpha(skin.accent, skin.glassScheme === 'light' ? 0.62 : 0.42)}
-              dense
-            >
-              <SymbolView
-                name={running ? 'pause.fill' : 'play.fill'}
-                size={26}
-                tintColor={skin.ink.primary}
-                weight="semibold"
-              />
-            </GlassPane>
-          </Pressable>
-
-          <Pressable
-            onPress={toggleDeep}
-            style={({ pressed }) => [styles.lift, pressed && styles.btnPressed]}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: deepFocus }}
-            accessibilityLabel="Deep Focus"
-          >
-            <GlassPane
-              style={styles.btnSide}
+          <View style={styles.dockRow}>
+            <HoldButton
+              size={64}
               radius={22}
-              tint={deepFocus ? withAlpha(DEEP_FOCUS.accent, 0.55) : undefined}
-              dense={deepFocus}
+              icon="arrow.counterclockwise"
+              iconColor={skin.ink.primary}
+              ringColor={skin.accentHi}
+              trackColor={skin.ink.tertiary}
               scheme={skin.glassScheme}
+              disabled={!canReset}
+              onComplete={reset}
+              onHoldChange={handleHold}
+              accessibilityLabel="Сбросить"
+            />
+
+            <Pressable
+              onPress={toggleRun}
+              style={({ pressed }) => [styles.liftMain, pressed && styles.btnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={running ? 'Пауза' : 'Начать'}
             >
-              <SymbolView
-                name={deepFocus ? 'shield.lefthalf.filled' : 'shield'}
-                size={23}
-                tintColor={deepFocus ? '#FFFFFF' : skin.ink.primary}
-                weight="medium"
-              />
-            </GlassPane>
-          </Pressable>
+              {/* Главное действие тоже стекло — выделяется плотностью материала
+                  и тинтом фазы, а не сплошной заливкой. */}
+              <GlassPane
+                style={styles.btnMain}
+                radius={28}
+                scheme={skin.glassScheme}
+                // На светлом фоне тинт нужен плотнее: тот же процент даёт
+                // пастель, и главное действие перестаёт быть главным.
+                tint={withAlpha(skin.accent, skin.glassScheme === 'light' ? 0.62 : 0.42)}
+                dense
+              >
+                <SymbolView
+                  name={running ? 'pause.fill' : 'play.fill'}
+                  size={26}
+                  tintColor={skin.ink.primary}
+                  weight="semibold"
+                />
+              </GlassPane>
+            </Pressable>
+
+            <Pressable
+              onPress={toggleDeep}
+              style={({ pressed }) => [styles.lift, pressed && styles.btnPressed]}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: deepFocus }}
+              accessibilityLabel="Deep Focus"
+            >
+              <GlassPane
+                style={styles.btnSide}
+                radius={22}
+                tint={deepFocus ? withAlpha(DEEP_FOCUS.accent, 0.55) : undefined}
+                dense={deepFocus}
+                scheme={skin.glassScheme}
+              >
+                <SymbolView
+                  name={deepFocus ? 'shield.lefthalf.filled' : 'shield'}
+                  size={23}
+                  tintColor={deepFocus ? '#FFFFFF' : skin.ink.primary}
+                  weight="medium"
+                />
+              </GlassPane>
+            </Pressable>
+          </View>
         </View>
 
         {/* Системный выбор приложений Apple. Оформить его нельзя —
@@ -558,11 +624,23 @@ const styles = StyleSheet.create({
   pips: { flexDirection: 'row', gap: 7, marginTop: 22 },
   pip: { width: 6, height: 6, borderRadius: 3 },
 
+  dockWrap: { justifyContent: 'flex-end' },
   dockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 18,
+  },
+  // Над кольцом сброса, но выше его внешнего края: иначе подсказка
+  // задевала бы растущую дугу.
+  hint: {
+    position: 'absolute',
+    top: -26,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // Тень на обёртке, а не на самом стекле: тень поверх GlassView гасит
@@ -594,6 +672,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  btnOff: { opacity: 0.32 },
   btnPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
 });
