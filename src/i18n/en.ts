@@ -59,6 +59,11 @@ export const en = {
   languageAuto: 'Match system',
   hintDeepFocusDark:
     'Deep Focus stays dark whatever you pick: in that mode the light leaves the room.',
+  presetClassic: 'Classic',
+  presetDeep: 'Deep work',
+  presetBrief: 'Easy start',
+  presetCustom: 'Custom',
+  presetLocked: 'Your own durations come with the subscription. The ring dial stays free — it sets the current phase.',
   hintDurations: 'Set on the ring dial and remembered between launches.',
 
   // Щит Screen Time

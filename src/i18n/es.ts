@@ -46,6 +46,11 @@ export const es: Dict = {
   languageAuto: 'Como el sistema',
   hintDeepFocusDark:
     'Deep Focus se mantiene oscuro elijas lo que elijas: en ese modo la luz se va de la habitación.',
+  presetClassic: 'Clásico',
+  presetDeep: 'Trabajo profundo',
+  presetBrief: 'Empezar fácil',
+  presetCustom: 'Personalizado',
+  presetLocked: 'Las duraciones propias vienen con la suscripción. El anillo sigue siendo gratis: ajusta la fase actual.',
   hintDurations: 'Se ajustan en el anillo y se recuerdan entre sesiones.',
 
   shieldTitle: 'Estás en Deep Focus',

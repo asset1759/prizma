@@ -166,6 +166,37 @@ export const SPECTRUM = [
   '#6E5BFF',
 ];
 
+/**
+ * Готовые наборы длительностей.
+ *
+ * Три числа по отдельности — плохая настройка: их надо согласовывать между
+ * собой, и человек не знает, с чего начать. Набор снимает этот выбор,
+ * а вручную остаётся регулятор на кольце.
+ */
+export type PresetKey = 'classic' | 'deep' | 'brief';
+
+export const PRESETS: Record<PresetKey, Record<Phase, number>> = {
+  // Классика Помодоро — с неё всё началось
+  classic: { focus: 25 * 60, short: 5 * 60, long: 15 * 60 },
+  // Под длинную работу: полчаса мало, чтобы разогнаться
+  deep: { focus: 50 * 60, short: 10 * 60, long: 30 * 60 },
+  // Когда трудно начать. Пятнадцать минут не страшно пообещать себе
+  brief: { focus: 15 * 60, short: 3 * 60, long: 10 * 60 },
+};
+
+/** Какому набору отвечают текущие длительности. `null` — своё */
+export function matchPreset(d: Record<Phase, number>): PresetKey | null {
+  const keys = Object.keys(PRESETS) as PresetKey[];
+  return (
+    keys.find(
+      (k) =>
+        PRESETS[k].focus === d.focus &&
+        PRESETS[k].short === d.short &&
+        PRESETS[k].long === d.long
+    ) ?? null
+  );
+}
+
 /** Сколько фокус-сессий до длинного перерыва */
 export const SESSIONS_PER_ROUND = 4;
 

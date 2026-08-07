@@ -14,7 +14,15 @@ import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useSettings, useT, type ThemeMode } from '../settings';
 import { LANGS, LANG_NAMES, resolveLang, type Key, type LangSetting } from '../i18n';
-import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
+import {
+  INK,
+  PHASES,
+  PRESETS,
+  SERIF_BOLD,
+  matchPreset,
+  type PresetKey,
+  type Scheme,
+} from '../theme';
 
 const MODES: { key: ThemeMode; label: Key }[] = [
   { key: 'auto', label: 'themeAuto' },
@@ -22,11 +30,13 @@ const MODES: { key: ThemeMode; label: Key }[] = [
   { key: 'dark', label: 'themeDark' },
 ];
 
-const PHASE_KEY: Record<'focus' | 'short' | 'long', Key> = {
-  focus: 'phaseFocus',
-  short: 'phaseShort',
-  long: 'phaseLong',
+const PRESET_LABEL: Record<PresetKey, Key> = {
+  classic: 'presetClassic',
+  deep: 'presetDeep',
+  brief: 'presetBrief',
 };
+
+const PRESET_ORDER: PresetKey[] = ['classic', 'deep', 'brief'];
 
 type SectionKey = 'appearance' | 'durations' | 'language';
 
@@ -55,9 +65,12 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
   };
 
   const min = (s: number) => Math.round(s / 60);
-  const durationSummary = `${min(settings.durations.focus)} · ${min(
-    settings.durations.short
-  )} · ${min(settings.durations.long)}`;
+  const set = (d: Record<'focus' | 'short' | 'long', number>) =>
+    `${min(d.focus)} · ${min(d.short)} · ${min(d.long)}`;
+
+  /** Свой набор — тот, что не совпал ни с одним готовым */
+  const current = matchPreset(settings.durations);
+  const durationSummary = current ? t(PRESET_LABEL[current]) : t('presetCustom');
 
   const langSummary =
     settings.language === 'auto'
@@ -104,17 +117,32 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
           scheme={scheme}
           ink={ink}
         >
-          {(['focus', 'short', 'long'] as const).map((p) => (
-            <View key={p} style={styles.row}>
-              <Text style={[styles.rowLabel, { color: ink.primary }]}>
-                {t(PHASE_KEY[p])}
-              </Text>
-              <Text style={[styles.rowValue, { color: ink.secondary }]}>
-                {min(settings.durations[p])}
-              </Text>
-            </View>
+          {PRESET_ORDER.map((k) => (
+            <Choice
+              key={k}
+              label={t(PRESET_LABEL[k])}
+              value={set(PRESETS[k])}
+              on={current === k}
+              onPress={() => update({ durations: { ...PRESETS[k] } })}
+              ink={ink}
+              accent={accent}
+            />
           ))}
-          <Hint text={t('hintDurations')} ink={ink} />
+
+          {/* Своё — по подписке. Строку показываем, а не прячем: скрытая
+              возможность не продаётся, и человек должен видеть, за что
+              ему предлагают заплатить. */}
+          <Choice
+            label={t('presetCustom')}
+            value={current === null ? set(settings.durations) : undefined}
+            on={current === null}
+            locked
+            onPress={() => {}}
+            ink={ink}
+            accent={accent}
+          />
+
+          <Hint text={t('presetLocked')} ink={ink} />
         </Section>
 
         <Section
@@ -223,13 +251,19 @@ function Section({
 
 function Choice({
   label,
+  value,
   on,
+  locked,
   onPress,
   ink,
   accent,
 }: {
   label: string;
+  /** Что стоит за выбором — например «25 · 5 · 15» */
+  value?: string;
   on: boolean;
+  /** Замок вместо точки: возможность видна, но пока не выдана */
+  locked?: boolean;
   onPress: () => void;
   ink: Ink;
   accent: string;
@@ -238,15 +272,29 @@ function Choice({
     <Pressable
       onPress={() => {
         if (on) return;
+        if (locked) {
+          // Пока экрана подписки нет, отказ хотя бы честно ощущается.
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+          return;
+        }
         Haptics.selectionAsync().catch(() => {});
         onPress();
       }}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       accessibilityRole="radio"
-      accessibilityState={{ selected: on }}
+      accessibilityState={{ selected: on, disabled: locked && !on }}
     >
       <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
-      {on ? <View style={[styles.check, { backgroundColor: accent }]} /> : null}
+      <View style={styles.rowRight}>
+        {value ? (
+          <Text style={[styles.rowValue, { color: ink.tertiary }]}>{value}</Text>
+        ) : null}
+        {locked && !on ? (
+          <SymbolView name="lock.fill" size={12} tintColor={ink.tertiary} weight="semibold" />
+        ) : on ? (
+          <View style={[styles.check, { backgroundColor: accent }]} />
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -294,6 +342,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   rowLabel: { fontSize: 15.5, fontWeight: '500' },
   rowValue: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   check: { width: 10, height: 10, borderRadius: 5 },
   hint: {
     fontSize: 12.5,

@@ -46,6 +46,11 @@ export const de: Dict = {
   languageAuto: 'Wie das System',
   hintDeepFocusDark:
     'Deep Focus bleibt bei jeder Wahl dunkel: In diesem Modus verlässt das Licht den Raum.',
+  presetClassic: 'Klassisch',
+  presetDeep: 'Tiefe Arbeit',
+  presetBrief: 'Leichter Start',
+  presetCustom: 'Eigene',
+  presetLocked: 'Eigene Dauern gibt es im Abo. Der Ring bleibt frei — er stellt die laufende Phase ein.',
   hintDurations: 'Am Ring eingestellt und zwischen den Starts gemerkt.',
 
   shieldTitle: 'Du bist im Deep Focus',

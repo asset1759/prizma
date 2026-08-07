@@ -46,6 +46,11 @@ export const ru: Dict = {
   languageAuto: 'Как в системе',
   hintDeepFocusDark:
     'Deep Focus остаётся тёмным при любом выборе: в этом режиме свет уходит из комнаты.',
+  presetClassic: 'Классический',
+  presetDeep: 'Глубокая работа',
+  presetBrief: 'Лёгкий старт',
+  presetCustom: 'Своё',
+  presetLocked: 'Свои длительности — в подписке. Регулятор на кольце остаётся бесплатным: он меняет текущую фазу.',
   hintDurations: 'Меняются регулятором на кольце и запоминаются между запусками.',
 
   shieldTitle: 'Ты в Deep Focus',

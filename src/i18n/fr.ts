@@ -46,6 +46,11 @@ export const fr: Dict = {
   languageAuto: 'Comme le système',
   hintDeepFocusDark:
     'Deep Focus reste sombre quel que soit votre choix : dans ce mode, la lumière quitte la pièce.',
+  presetClassic: 'Classique',
+  presetDeep: 'Travail profond',
+  presetBrief: 'Départ facile',
+  presetCustom: 'Personnalisé',
+  presetLocked: 'Les durées personnalisées viennent avec l’abonnement. L’anneau reste libre : il règle la phase en cours.',
   hintDurations: 'Réglées sur l’anneau et gardées d’un lancement à l’autre.',
 
   shieldTitle: 'Vous êtes en Deep Focus',
