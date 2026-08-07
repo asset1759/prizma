@@ -18,7 +18,7 @@ export const en = {
   // Вкладки
   tabTimer: 'Timer',
   tabApps: 'Deep Focus',
-  tabStats: 'Stats',
+  tabStats: 'Progress',
   tabMore: 'More',
 
   // Экран таймера
@@ -76,8 +76,21 @@ export const en = {
   appsWhatToClose: 'What to close',
   appsHow: 'How it works',
   appsTitle: 'Deep Focus',
-  statsTitle: 'Stats',
-  statsHint: 'Hours in focus, your best time of day, streak of days in a row.',
+  statsToday: 'Today',
+  statsWeek: 'Week',
+  statsStreak: 'Streak',
+  statsBest: 'Most often',
+  statsBestPhrase: 'You start most often around {hour}',
+  statsEmpty: 'Your first session is still ahead. Come back when a phase is done — there will be something to look at.',
+  sessionsOne: '{n} session',
+  sessionsFew: '{n} sessions',
+  sessionsMany: '{n} sessions',
+  daysOne: '{n} day in a row',
+  daysFew: '{n} days in a row',
+  daysMany: '{n} days in a row',
+  unitH: 'h',
+  unitMin: 'm',
+  statsTitle: 'Progress',
 
   // Экран «Ещё»
   moreTitle: 'More',

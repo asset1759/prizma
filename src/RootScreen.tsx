@@ -7,7 +7,7 @@ import { TabBar, type TabKey } from './components/TabBar';
 import { migrateLegacySelection } from './blocking';
 import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
-import { StubScreen } from './screens/StubScreen';
+import { StatsScreen } from './screens/StatsScreen';
 import { TimerScreen } from './screens/TimerScreen';
 import { useResolvedScheme, useT } from './settings';
 import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
@@ -60,12 +60,7 @@ export function RootScreen() {
       </Pane>
 
       <Pane active={tab === 'stats'}>
-        <StubScreen
-          scheme={scheme}
-          icon="chart.bar"
-          title={t('statsTitle')}
-          hint={t('statsHint')}
-        />
+        <StatsScreen scheme={scheme} />
       </Pane>
 
       <Pane active={tab === 'more'}>

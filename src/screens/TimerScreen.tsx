@@ -32,6 +32,7 @@ import {
 } from '../blocking';
 
 import * as LiveActivity from '../../modules/live-activity';
+import { record as recordSession } from '../history';
 
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
@@ -495,6 +496,10 @@ export function TimerScreen({
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setRunning(false);
+
+    // В историю попадает только досчитанный фокус: перерыв не достижение,
+    // а прерванная сессия сюда и не доходит — этот эффект ловит ноль.
+    if (phase === 'focus') recordSession(duration, deepFocus);
     /**
      * Держим ноль на виду. Без этого остаток тут же возвращался к `held`,
      * то есть к полной длительности, кольцо признавало себя регулятором
@@ -519,7 +524,7 @@ export function TimerScreen({
      * так что переход подхватывает его, а не перебивает.
      */
     endTimer.current = setTimeout(() => advance(true), 1350);
-  }, [left, running, advance, flash]);
+  }, [left, running, advance, flash, phase, duration, deepFocus]);
 
   // Чистим только при размонтировании. Возврат из самого эффекта не годится:
   // эффект перезапускается сразу же — состояние-то он и меняет, — и уборка
