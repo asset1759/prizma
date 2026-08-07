@@ -43,11 +43,11 @@ export const pt: Dict = {
   listEmpty: 'Nada selecionado',
   listEdit: 'Escolher apps',
   appsIntro: 'O Deep Focus fecha o que estiver na lista escolhida.',
-  appsPickerNote: 'A Apple nunca nos mostra quais apps você tem — você os marca na tela dela. Nós apenas guardamos a escolha e damos um nome à lista.',
+  appsPickerNote: 'A Apple nunca nos mostra quais apps você tem — você os marca na tela dela. Nós apenas guardamos a escolha e damos um nome à lista.',
   appsMultipleLocked: 'Várias listas vêm com a assinatura. Uma é grátis.',
   strictTitle: 'Modo rígido',
   strictSub: 'Uma sessão iniciada não pode ser cortada',
-  strictHint: 'Uma sessão iniciada não pode ser cortada: o Deep Focus continua ligado e o timer não zera até a fase terminar. É esse o ponto — combinar consigo antes, enquanto sair ainda não tenta.',
+  strictHint: 'Uma sessão iniciada não pode ser cortada: o Deep Focus continua ligado e o timer não zera até a fase terminar. É esse o ponto — combinar consigo antes, enquanto sair ainda não tenta.',
   strictHonest: 'É atrito, não um cadeado: o app sempre pode ser apagado. No iOS ninguém segura mais forte, e o atrito basta para o impulso passar.',
   strictRunning: 'Há uma sessão rígida em andamento. Espere a fase terminar.',
   scheduleTitle: 'Programação',
@@ -99,7 +99,7 @@ export const pt: Dict = {
   statsRecSession: 'Sessão',
   statsRecWeek: 'Semana',
   statsNothingYet: 'Sem sessões nestes dias',
-  statsEmpty: 'Sua primeira sessão ainda está por vir. Volte quando terminar uma fase — aí haverá o que ver.',
+  statsEmpty: 'Sua primeira sessão ainda está por vir. Volte quando terminar uma fase — aí haverá o que ver.',
 
   // Месяцы: короткие — для диапазонов дат, полные — для заголовка месяца
   mon1: 'jan',

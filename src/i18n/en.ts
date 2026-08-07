@@ -54,15 +54,15 @@ export const en = {
   listEmpty: 'Nothing selected',
   listEdit: 'Choose apps',
   appsIntro: 'Deep Focus closes what is in the chosen list.',
-  appsPickerNote: 'Apple never shows us which apps you have — you pick them yourself on its screen. We only remember the choice and give the list a name.',
+  appsPickerNote: 'Apple never shows us which apps you have — you pick them yourself on its screen. We only remember the choice and give the list a name.',
   appsMultipleLocked: 'Several lists come with the subscription. One is free.',
   // Эти три больше не показываются: экран настроек обходится без прописей.
   // Оставлены для онбординга — там их место, и переписывать на шести
   // языках заново было бы расточительством.
   strictTitle: 'Strict mode',
   strictSub: 'A started session cannot be cut short',
-  strictHint: 'A started session cannot be cut short: Deep Focus stays on and the timer cannot be reset until the phase runs out. That is the whole point — you agree with yourself in advance, while leaving is not yet tempting.',
-  strictHonest: 'It is friction, not a lock: the app can always be deleted. Nothing on iOS holds tighter — the friction is enough for the urge to pass.',
+  strictHint: 'A started session cannot be cut short: Deep Focus stays on and the timer cannot be reset until the phase runs out. That is the whole point — you agree with yourself in advance, while leaving is not yet tempting.',
+  strictHonest: 'It is friction, not a lock: the app can always be deleted. Nothing on iOS holds tighter — the friction is enough for the urge to pass.',
   strictRunning: 'A strict session is running. Wait for the phase to finish.',
   scheduleTitle: 'Schedule',
   scheduleOn: 'Schedule',
@@ -113,7 +113,7 @@ export const en = {
   statsRecSession: 'Session',
   statsRecWeek: 'Week',
   statsNothingYet: 'No sessions in these days',
-  statsEmpty: 'Your first session is still ahead. Come back when a phase is done — there will be something to look at.',
+  statsEmpty: 'Your first session is still ahead. Come back when a phase is done — there will be something to look at.',
 
   // Месяцы: короткие — для диапазонов дат, полные — для заголовка месяца
   mon1: 'Jan',
@@ -177,7 +177,7 @@ export const en = {
   presetDeep: 'Deep work',
   presetBrief: 'Easy start',
   presetCustom: 'Custom',
-  presetLocked: 'The ring dial is free — turn it any time, it changes the current phase. Keeping your own set of three is part of the subscription.',
+  presetLocked: 'The ring dial is free — turn it any time, it changes the current phase. Keeping your own set of three is part of the subscription.',
   hintDurations: 'Set on the ring dial and remembered between launches.',
 
   // Щит Screen Time

@@ -98,7 +98,7 @@ export const fr: Dict = {
   statsRecSession: 'Session',
   statsRecWeek: 'Semaine',
   statsNothingYet: 'Aucune session ces jours-là',
-  statsEmpty: 'Ta première session est encore devant toi. Reviens quand une phase sera terminée — il y aura de quoi regarder.',
+  statsEmpty: 'Ta première session est encore devant toi. Reviens quand une phase sera terminée — il y aura de quoi regarder.',
 
   // Месяцы: короткие — для диапазонов дат, полные — для заголовка месяца
   mon1: 'janv.',

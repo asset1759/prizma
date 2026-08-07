@@ -42,11 +42,11 @@ export const de: Dict = {
   listEmpty: 'Nichts ausgewählt',
   listEdit: 'Apps wählen',
   appsIntro: 'Deep Focus schließt, was in der gewählten Liste steht.',
-  appsPickerNote: 'Apple zeigt uns nie, welche Apps du hast — du wählst sie selbst auf ihrem Bildschirm. Wir merken uns nur die Auswahl und geben der Liste einen Namen.',
+  appsPickerNote: 'Apple zeigt uns nie, welche Apps du hast — du wählst sie selbst auf ihrem Bildschirm. Wir merken uns nur die Auswahl und geben der Liste einen Namen.',
   appsMultipleLocked: 'Mehrere Listen gibt es im Abo. Eine ist frei.',
   strictTitle: 'Strenger Modus',
   strictSub: 'Eine begonnene Sitzung lässt sich nicht abbrechen',
-  strictHint: 'Eine begonnene Sitzung lässt sich nicht abbrechen: Deep Focus bleibt an und der Timer lässt sich nicht zurücksetzen, bis die Phase abgelaufen ist. Genau darum geht es — sich vorher mit sich zu einigen, solange das Weggehen noch nicht lockt.',
+  strictHint: 'Eine begonnene Sitzung lässt sich nicht abbrechen: Deep Focus bleibt an und der Timer lässt sich nicht zurücksetzen, bis die Phase abgelaufen ist. Genau darum geht es — sich vorher mit sich zu einigen, solange das Weggehen noch nicht lockt.',
   strictHonest: 'Das ist Reibung, kein Schloss: Die App lässt sich immer löschen. Fester hält auf iOS niemand, und die Reibung reicht, damit der Impuls vorbeigeht.',
   strictRunning: 'Eine strenge Sitzung läuft. Warte das Ende der Phase ab.',
   scheduleTitle: 'Zeitplan',
@@ -98,7 +98,7 @@ export const de: Dict = {
   statsRecSession: 'Sitzung',
   statsRecWeek: 'Woche',
   statsNothingYet: 'Keine Sitzungen an diesen Tagen',
-  statsEmpty: 'Deine erste Sitzung steht noch aus. Komm wieder, wenn eine Phase durch ist — dann gibt es etwas zu sehen.',
+  statsEmpty: 'Deine erste Sitzung steht noch aus. Komm wieder, wenn eine Phase durch ist — dann gibt es etwas zu sehen.',
 
   // Месяцы: короткие — для диапазонов дат, полные — для заголовка месяца
   mon1: 'Jan',
@@ -161,7 +161,7 @@ export const de: Dict = {
   presetDeep: 'Tiefe Arbeit',
   presetBrief: 'Leichter Start',
   presetCustom: 'Eigene',
-  presetLocked: 'Der Ring ist frei — dreh ihn jederzeit, er ändert die laufende Phase. Das eigene Dreierset zu behalten gehört zum Abo.',
+  presetLocked: 'Der Ring ist frei — dreh ihn jederzeit, er ändert die laufende Phase. Das eigene Dreierset zu behalten gehört zum Abo.',
   hintDurations: 'Am Ring eingestellt und zwischen den Starts gemerkt.',
 
   shieldTitle: 'Du bist in der Vertiefung',
