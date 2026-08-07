@@ -40,25 +40,34 @@ export function RootScreen() {
     <View style={[styles.root, { backgroundColor: INK[scheme].ground }]}>
       <AmbientCanvas colors={ambient.canvas} opacity={ambient.opacity} />
 
-      {tab === 'timer' ? (
+      {/* Вкладки прячутся, а не снимаются с дерева. Экран таймера ведёт
+          живую сессию: размонтирование убивало отсчёт, а заодно оставляло
+          приложения закрытыми — снять блокировку было уже некому. */}
+      <Pane active={tab === 'timer'}>
         <TimerScreen onAmbientChange={handleAmbient} />
-      ) : tab === 'apps' ? (
+      </Pane>
+
+      <Pane active={tab === 'apps'}>
         <StubScreen
           scheme={scheme}
           icon="square.grid.2x2"
           title="Приложения"
           hint="Здесь будут наборы приложений: соцсети, игры, всё кроме звонков. Пока список выбирается системным экраном Apple при включении Deep Focus."
         />
-      ) : tab === 'stats' ? (
+      </Pane>
+
+      <Pane active={tab === 'stats'}>
         <StubScreen
           scheme={scheme}
           icon="chart.bar"
           title="Итоги"
           hint="Сколько часов в фокусе, лучшее время дня, серия дней подряд."
         />
-      ) : (
+      </Pane>
+
+      <Pane active={tab === 'more'}>
         <MoreScreen scheme={scheme} />
-      )}
+      </Pane>
 
       <View style={styles.dock} pointerEvents="box-none">
         <SafeAreaView edges={['bottom']} pointerEvents="box-none">
@@ -74,7 +83,19 @@ export function RootScreen() {
   );
 }
 
+/**
+ * Неактивная вкладка скрыта через display: none — она не занимает места
+ * в разметке, но продолжает жить: таймеры тикают, состояние на месте.
+ * Скрытие прозрачностью тут не годится — невидимый экран продолжал бы
+ * перехватывать касания.
+ */
+function Pane({ active, children }: { active: boolean; children: React.ReactNode }) {
+  return <View style={active ? styles.pane : styles.hidden}>{children}</View>;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  pane: { flex: 1 },
+  hidden: { display: 'none' },
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 });
