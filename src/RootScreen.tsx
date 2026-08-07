@@ -9,7 +9,8 @@ import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { StatsScreen } from './screens/StatsScreen';
 import { TimerScreen } from './screens/TimerScreen';
-import { useResolvedScheme, useT } from './settings';
+import { useResolvedScheme, useSettings, useT } from './settings';
+import * as Notify from './notify';
 import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
 
 /**
@@ -23,10 +24,37 @@ export function RootScreen() {
   const t = useT();
   const systemScheme = useResolvedScheme();
 
+  const { settings } = useSettings();
+
   // Один раз за запуск: подхватить набор, сохранённый до появления списков.
   useEffect(() => {
     migrateLegacySelection();
   }, []);
+
+  /**
+   * «Время фокуса» — на уровне оболочки, а не экрана настроек.
+   *
+   * Настраивают его в «Ещё», но действует оно всегда, и привязка к
+   * экрану была бы привязкой к тому, что все вкладки сейчас смонтированы
+   * разом. Стоит однажды поменять это устройство — и напоминания молча
+   * перестанут заводиться.
+   *
+   * Язык в зависимостях: тексты уходят в системный запрос заранее, и
+   * переключивший язык иначе получал бы напоминания на прежнем.
+   */
+  const daily = settings.notifications;
+  useEffect(() => {
+    if (!daily.daily || daily.dailyDays.length === 0) {
+      Notify.cancelDaily();
+      return;
+    }
+    Notify.scheduleDaily(
+      daily.dailyDays,
+      daily.dailyHour,
+      t('notifDailyTitle'),
+      t('notifDailyBody')
+    );
+  }, [daily.daily, daily.dailyDays, daily.dailyHour, t]);
   const [tab, setTab] = useState<TabKey>('timer');
 
   /**

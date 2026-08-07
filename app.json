@@ -16,7 +16,8 @@
         "NSSupportsLiveActivities": true
       },
       "entitlements": {
-        "com.apple.developer.family-controls": true
+        "com.apple.developer.family-controls": true,
+        "com.apple.developer.usernotifications.time-sensitive": true
       }
     },
     "android": {
@@ -47,7 +48,8 @@
           "appGroup": "group.kz.asset.focus"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-notifications"
     ]
   }
 }

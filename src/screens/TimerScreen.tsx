@@ -33,6 +33,7 @@ import {
 
 import * as LiveActivity from '../../modules/live-activity';
 import { record as recordSession } from '../history';
+import * as Notify from '../notify';
 
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
@@ -78,6 +79,8 @@ export function TimerScreen({
   const [deepFocus, setDeepFocus] = useState(false);
   const [done, setDone] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** Показывать ли строку с вопросом про уведомления под кольцом */
+  const [askNotify, setAskNotify] = useState(false);
   /** Момент старта сессии — нужен только для подписи «14:00 → 14:25» */
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   /**
@@ -380,6 +383,9 @@ export function TimerScreen({
       if (s === 'active') {
         setNow(Date.now());
         adoptExternal();
+        // Баннер о фазе, которую человек уже видит глазами, — мусор
+        // в шторке.
+        Notify.dismissPhaseEnd();
       }
     });
     return () => sub.remove();
@@ -533,7 +539,51 @@ export function TimerScreen({
      * так что переход подхватывает его, а не перебивает.
      */
     endTimer.current = setTimeout(() => advance(true), 1350);
-  }, [left, running, advance, flash, phase, duration, deepFocus]);
+
+    /**
+     * Единственная секунда во всей жизни приложения, когда польза от
+     * уведомления очевидна без объяснений: человек только что своими
+     * глазами увидел, чем кончается фаза, — и заодно понял, что не увидел
+     * бы этого, отвернувшись.
+     *
+     * Не на первом запуске и не на первом «Старте»: выстрел один, отказ
+     * изнутри не отменить, а системный диалог поверх только что начатой
+     * сессии — ровно то прерывание, против которого продаётся продукт.
+     */
+    if (settings.notifications.askedAt === null) setAskNotify(true);
+  }, [left, running, advance, flash, phase, duration, deepFocus, settings.notifications.askedAt]);
+
+  /**
+   * Сигнал в конце фазы.
+   *
+   * Планируется эффектом, а не обработчиками. Обнуляют дедлайн шестеро —
+   * старт, пауза, сброс, переход к следующей фазе, ручная смена и
+   * подхват чужой сессии, — и дописывать отмену в каждого значило бы
+   * рано или поздно забыть в одном. Уборка эффекта покрывает всех разом,
+   * а пауза, где дедлайн исчезает, оказывается не проблемой, а подарком:
+   * `endsAt === null` буквально означает «отменить».
+   */
+  useEffect(() => {
+    if (!settings.notifications.phaseEnd || !running || endsAt === null) {
+      Notify.cancelPhaseEnd();
+      return;
+    }
+
+    // Перерыв длинный или короткий — в момент окончания разница человеку
+    // не нужна ни для чего, поэтому текст у них один.
+    const next = phase === 'focus' ? saved.short : saved.focus;
+    Notify.schedulePhaseEnd(
+      endsAt,
+      t(phase === 'focus' ? 'notifFocusDone' : 'notifBreakDone'),
+      t(phase === 'focus' ? 'notifBreakNext' : 'notifFocusNext', {
+        n: Math.round(next / 60),
+      })
+    );
+
+    return () => {
+      Notify.cancelPhaseEnd();
+    };
+  }, [settings.notifications.phaseEnd, running, endsAt, phase, saved, t]);
 
   // Чистим только при размонтировании. Возврат из самого эффекта не годится:
   // эффект перезапускается сразу же — состояние-то он и меняет, — и уборка
@@ -589,6 +639,9 @@ export function TimerScreen({
     // Момент старта фиксируем один раз за сессию: пауза не должна
     // сдвигать левую границу диапазона.
     setStartedAt((prev) => prev ?? new Date(t));
+
+    // Звать работать того, кто уже работает, — худший вид уведомления.
+    Notify.cancelDailyToday();
 
     // Щит поднимается сам, если человек об этом попросил. Именно здесь,
     // а не по состоянию сессии: снял щит посреди фокуса — значит снял,
@@ -659,6 +712,29 @@ export function TimerScreen({
    */
   const counted = settings.listCount ?? listSize(settings.appList);
   const blockedCount = counted ? counted.apps + counted.categories : 0;
+
+  /**
+   * Ответ на вопрос про уведомления.
+   *
+   * «Не надо» — это не «спросить позже»: `askedAt` записывается в обоих
+   * случаях, и второй раз вопрос не появится никогда. Переключатель в
+   * «Ещё» при этом остаётся живым — передумать можно там.
+   */
+  const answerNotify = useCallback(
+    (yes: boolean) => {
+      Haptics.selectionAsync().catch(() => {});
+      setAskNotify(false);
+      update({
+        notifications: {
+          ...settings.notifications,
+          askedAt: Date.now(),
+          phaseEnd: yes,
+        },
+      });
+      if (yes) Notify.ensurePermission();
+    },
+    [settings.notifications, update]
+  );
 
   const refuseStrict = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
@@ -935,6 +1011,39 @@ export function TimerScreen({
           </View>
         </View>
 
+        {/* Вопрос про уведомления. Одна строка на месте, а не модальное
+            окно: человек в эту секунду смотрит на досчитавшее кольцо, и
+            накрывать его диалогом было бы тем самым прерыванием, против
+            которого продаётся продукт. Спрашивается один раз за установку,
+            и ответ «не надо» больше никогда не переспрашивается. */}
+        {askNotify ? (
+          <View style={styles.askRow}>
+            <Text style={[styles.askText, { color: skin.ink.secondary }]}>
+              {t('notifAsk')}
+            </Text>
+            <View style={styles.askButtons}>
+              <Pressable
+                onPress={() => answerNotify(false)}
+                hitSlop={10}
+                style={({ pressed }) => pressed && { opacity: 0.5 }}
+              >
+                <Text style={[styles.askNo, { color: skin.ink.tertiary }]}>
+                  {t('notifAskNo')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => answerNotify(true)}
+                hitSlop={10}
+                style={({ pressed }) => pressed && { opacity: 0.5 }}
+              >
+                <Text style={[styles.askYes, { color: skin.accent }]}>
+                  {t('notifAskYes')}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         {/* Управление — единственный стеклянный слой на экране. Тень поднимает
             кнопки над фоном: без неё материал читается как вырез в подложке,
             а не как предмет, лежащий сверху. */}
@@ -1126,6 +1235,19 @@ const styles = StyleSheet.create({
   },
   // Над кольцом сброса, но выше его внешнего края: иначе подсказка
   // задевала бы растущую дугу.
+  askRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+  },
+  askText: { fontSize: 14, fontWeight: '500', flexShrink: 1 },
+  askButtons: { flexDirection: 'row', gap: 16 },
+  askNo: { fontSize: 14, fontWeight: '600' },
+  askYes: { fontSize: 14, fontWeight: '700' },
+
   hint: {
     position: 'absolute',
     top: -26,

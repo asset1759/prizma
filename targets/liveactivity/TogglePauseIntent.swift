@@ -1,6 +1,7 @@
 import ActivityKit
 import AppIntents
 import Foundation
+import UserNotifications
 
 /**
  Пауза и продолжение прямо с экрана блокировки.
@@ -57,6 +58,14 @@ enum SessionBridge {
   /// со своей и понимает, что состояние поменяли без него.
   static let kStamp = "la.stamp"
 
+  /// Зеркало сигнала о конце фазы. Пишет JavaScript при планировании,
+  /// читаем здесь: пересобрать запрос надо, а перевода взять неоткуда.
+  static let kNotifOn = "notifPhaseOn"
+  static let kNotifTitle = "notifPhaseTitle"
+  static let kNotifBody = "notifPhaseBody"
+  /// Тот же идентификатор, что и в `src/notify.ts` — запрос в очереди один
+  static let notifId = "prizma.phase.end"
+
   static var store: UserDefaults? { UserDefaults(suiteName: suite) }
 
   static func togglePause() {
@@ -106,9 +115,50 @@ enum SessionBridge {
     }
 
     d.set(now.timeIntervalSince1970, forKey: kStamp)
+    rescheduleNotification(store: d)
 
     for activity in Activity<PrizmaAttributes>.activities {
       Task { await activity.update(ActivityContent(state: next, staleDate: nil)) }
     }
+  }
+
+  /**
+   Переставляет сигнал о конце фазы под новый дедлайн.
+
+   Без этого пауза с экрана блокировки оставляла бы уведомление в очереди:
+   человек нажал паузу в 14:10, а в 14:25 телефон объявлял бы о конце
+   сессии, которая стоит. Отменить и поставить заново может только эта
+   функция — JavaScript в процессе App Intent не поднят.
+
+   `UNUserNotificationCenter` общий для всего процесса, а идентификатор
+   постоянный, поэтому Swift снимает ровно то, что поставил JavaScript.
+   */
+  private static func rescheduleNotification(store d: UserDefaults) {
+    let center = UNUserNotificationCenter.current()
+    center.removePendingNotificationRequests(withIdentifiers: [notifId])
+
+    guard d.bool(forKey: kNotifOn), d.bool(forKey: kRunning) else { return }
+
+    let endsAt = Date(timeIntervalSince1970: d.double(forKey: kEndsAt))
+    guard endsAt.timeIntervalSinceNow > 1 else { return }
+
+    let content = UNMutableNotificationContent()
+    content.title = d.string(forKey: kNotifTitle) ?? ""
+    content.body = d.string(forKey: kNotifBody) ?? ""
+    content.sound = .default
+    if #available(iOS 15.0, *) {
+      // Тот же уровень, что и у запроса из JavaScript: без него сигнал
+      // приглушается режимом фокусирования — ровно тем, который наша
+      // аудитория включает на время работы.
+      content.interruptionLevel = .timeSensitive
+    }
+
+    let trigger = UNTimeIntervalNotificationTrigger(
+      timeInterval: endsAt.timeIntervalSinceNow,
+      repeats: false
+    )
+    center.add(
+      UNNotificationRequest(identifier: notifId, content: content, trigger: trigger)
+    )
   }
 }

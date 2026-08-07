@@ -32,6 +32,47 @@ import {
 
 export type ThemeMode = 'auto' | 'light' | 'dark';
 
+/**
+ * Уведомления.
+ *
+ * Сюда попадает только то, что человек завёл сам, или то, что чинит
+ * сломанный таймер. Всё, что зовёт вернуться в приложение, — не попадает
+ * никогда: приложение для фокуса, которое дёргает пушами, противоречит
+ * себе, и планка здесь выше обычной.
+ */
+export type Notifications = {
+  /** Сигнал в момент, когда фаза досчитала */
+  phaseEnd: boolean;
+  /** Напоминание сесть за работу */
+  daily: boolean;
+  /** Дни напоминания по Apple: 1 — воскресенье, 7 — суббота */
+  dailyDays: number[];
+  /** Час напоминания, 0…23 */
+  dailyHour: number;
+  /**
+   * Когда спрашивали разрешение. `null` — ещё не спрашивали.
+   *
+   * Выстрел один: iOS показывает системный диалог ровно раз, и отказ
+   * изнутри приложения не отменить. Поэтому спрашиваем в конце первой
+   * досчитанной фазы — в единственную секунду, когда польза от
+   * уведомления очевидна без объяснений.
+   */
+  askedAt: number | null;
+};
+
+const DEFAULT_NOTIFICATIONS: Notifications = {
+  // Инициатор здесь человек: он сам запустил отсчёт минуту назад, и поток
+  // уведомлений невозможен по устройству. Системный «Таймер» Apple вообще
+  // не спрашивает.
+  phaseEnd: true,
+  // У напоминания нет времени, пока его не назвали, и единственное
+  // честное умолчание — выключено.
+  daily: false,
+  dailyDays: [2, 3, 4, 5, 6],
+  dailyHour: 9,
+  askedAt: null,
+};
+
 export type Settings = {
   /** «auto» — следовать системе; остальное перекрывает её */
   themeMode: ThemeMode;
@@ -59,6 +100,8 @@ export type Settings = {
   schedule: Schedule;
   /** Длительности фаз в секундах, выставленные регулятором */
   durations: Record<Phase, number>;
+  /** Что и когда приложению позволено сообщать */
+  notifications: Notifications;
 };
 
 const DEFAULTS: Settings = {
@@ -74,6 +117,7 @@ const DEFAULTS: Settings = {
     short: PHASES.dark.short.duration,
     long: PHASES.dark.long.duration,
   },
+  notifications: DEFAULT_NOTIFICATIONS,
 };
 
 const FILE_NAME = 'prizma-settings.json';
@@ -100,6 +144,7 @@ function loadSync(): Settings {
       listCount: raw.listCount ?? DEFAULTS.listCount,
       schedule: { ...DEFAULTS.schedule, ...(raw.schedule ?? {}) },
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
+      notifications: { ...DEFAULTS.notifications, ...(raw.notifications ?? {}) },
     };
   } catch {
     // Битый файл не должен мешать запуску — просто начинаем с чистого листа.

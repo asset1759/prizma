@@ -27,6 +27,16 @@ export type Schedule = {
   /** Часы, 0…23. Минуты намеренно не спрашиваем — см. экран */
   from: number;
   to: number;
+  /**
+   * Сообщать о начале окна.
+   *
+   * Свойство расписания, а не строка в общем списке уведомлений: окно
+   * начинается без участия человека, и без сообщения он узнаёт об этом,
+   * только ткнувшись в закрытое приложение. Парного «окно закончилось»
+   * нет намеренно — уведомление «соцсети снова открыты» приложение для
+   * фокуса не отправляет.
+   */
+  announce: boolean;
 };
 
 export const DEFAULT_SCHEDULE: Schedule = {
@@ -35,6 +45,7 @@ export const DEFAULT_SCHEDULE: Schedule = {
   days: [2, 3, 4, 5, 6],
   from: 9,
   to: 12,
+  announce: true,
 };
 
 /**
@@ -78,7 +89,22 @@ export function isWindowOpen(s: Schedule, at = new Date()): boolean {
  * состояние живёт в системе, а не у нас, и «починить на месте» здесь
  * означало бы гадать о том, чего мы не видим.
  */
-export async function applySchedule(s: Schedule, list: ListKey) {
+export type Announce = { title: string; body: string };
+
+export async function applySchedule(
+  s: Schedule,
+  list: ListKey,
+  /**
+   * Текст уведомления о начале окна, уже переведённый.
+   *
+   * Вшивается в действие заранее, потому что в момент срабатывания
+   * JavaScript не выполняется и спросить перевод будет не у кого. Отсюда
+   * важное следствие: смена языка обязана перезаводить расписание, иначе
+   * человек будет получать уведомления на прежнем языке до следующей
+   * правки часов.
+   */
+  announce?: Announce
+) {
   // Снимаем прежние — все семь, даже если день сейчас не выбран:
   // он мог быть выбран вчера.
   for (const d of ALL_DAYS) {
@@ -92,16 +118,19 @@ export async function applySchedule(s: Schedule, list: ListKey) {
   if (!s.on || s.days.length === 0 || s.from === s.to) return;
 
   const overnight = s.from > s.to;
+  const say = s.announce ? announce : undefined;
 
   for (const d of s.days) {
     if (overnight) {
       // Вечерняя половина: конец суток закрывать не надо — щит снимет
       // утренняя половина. Иначе между 23:59 и 00:00 приложения на
       // минуту открывались бы посреди ночного окна.
-      await arm(activityName(d, 'a'), list, d, s.from, 23, 59, false);
+      await arm(activityName(d, 'a'), list, d, s.from, 23, 59, false, say);
+      // Утренняя половина о себе не сообщает: окно то же самое, а два
+      // баннера за ночь — это уже назойливость.
       await arm(activityName(d, 'b'), list, nextDay(d), 0, s.to, 0, true);
     } else {
-      await arm(activityName(d), list, d, s.from, s.to, 0, true);
+      await arm(activityName(d), list, d, s.from, s.to, 0, true, say);
     }
   }
 }
@@ -119,12 +148,32 @@ async function arm(
   fromHour: number,
   toHour: number,
   toMinute: number,
-  release: boolean
+  release: boolean,
+  announce?: Announce
 ) {
   configureActions({
     activityName: name,
     callbackName: 'intervalDidStart',
-    actions: [{ type: 'blockSelection', familyActivitySelectionId: listId(list) }],
+    actions: [
+      { type: 'blockSelection', familyActivitySelectionId: listId(list) },
+      // Единственное уведомление, сообщающее о том, что произошло без
+      // участия человека. Без него он узнаёт о закрытых приложениях,
+      // только ткнувшись в закрытое и упершись в щит.
+      ...(announce
+        ? [
+            {
+              type: 'sendNotification' as const,
+              payload: {
+                title: announce.title,
+                body: announce.body,
+                // Без звука намеренно: сообщение «телефон стал тише»,
+                // объявленное звуком, противоречит само себе.
+                interruptionLevel: 'active' as const,
+              },
+            },
+          ]
+        : []),
+    ],
   });
 
   configureActions({

@@ -10,14 +10,14 @@ import {
 } from 'react-native-device-activity';
 
 import { GlassPane } from '../components/GlassPane';
+import { DayRow, Divider, Hour, Toggle, rowStyles } from '../components/SettingsRows';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { ensureAuthorized, listId, listSize } from '../blocking';
 import { applySchedule, scheduledCount } from '../schedule';
-import { useSettings, useT, useTn } from '../settings';
+import { useClock, useSettings, useT, useTn } from '../settings';
+import * as Notify from '../notify';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
 import type { Key } from '../i18n';
-
-type Ink = (typeof INK)['dark'];
 
 /**
  * Что закрывает Deep Focus и когда.
@@ -37,6 +37,7 @@ type Ink = (typeof INK)['dark'];
 export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const t = useT();
   const tn = useTn();
+  const clock = useClock();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const ink = INK[scheme];
@@ -89,7 +90,10 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
    */
   useEffect(() => {
     let alive = true;
-    applySchedule(sch, list).then(() => {
+    applySchedule(sch, list, {
+      title: t('notifSchedOnTitle'),
+      body: t('notifSchedOnBody', { time: clock.hour(sch.to) }),
+    }).then(() => {
       // Пересчитываем после применения, а не до: показать надо не число,
       // а единственное состояние, которое стоит показывать, — что окна
       // не завелись вовсе.
@@ -98,7 +102,10 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
     return () => {
       alive = false;
     };
-  }, [sch, list]);
+    // Язык в зависимостях обязателен: тексты вшиваются в действие
+    // заранее, и без него переключивший язык получал бы уведомления на
+    // прежнем до следующей правки расписания.
+  }, [sch, list, t, clock]);
 
   /**
    * Разрешение спрашиваем до открытия выбора. Без него экран Apple
@@ -184,7 +191,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
             accent={accent}
           />
 
-          <View style={[styles.divider, { backgroundColor: ink.track }]} />
+          <Divider ink={ink} />
 
           <Toggle
             label={t('strictTitle')}
@@ -195,7 +202,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
             accent={accent}
           />
 
-          <View style={[styles.divider, { backgroundColor: ink.track }]} />
+          <Divider ink={ink} />
 
           <Toggle
             label={t('scheduleOn')}
@@ -208,47 +215,14 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
 
           {sch.on ? (
             <>
-              <View style={styles.days}>
-                {/* С понедельника: воскресенье первым — привычка
-                    американского календаря, а рынки у нас другие. */}
-                {[2, 3, 4, 5, 6, 7, 1].map((d) => {
-                  const picked = sch.days.includes(d);
-                  return (
-                    <Pressable
-                      key={d}
-                      onPress={() => {
-                        Haptics.selectionAsync().catch(() => {});
-                        update({
-                          schedule: {
-                            ...sch,
-                            days: picked
-                              ? sch.days.filter((x) => x !== d)
-                              : [...sch.days, d],
-                          },
-                        });
-                      }}
-                      style={[
-                        styles.day,
-                        { borderColor: picked ? accent : ink.track },
-                        picked && { backgroundColor: accent },
-                      ]}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: picked }}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          { color: picked ? '#FFFFFF' : ink.secondary },
-                        ]}
-                      >
-                        {t(`day${d}` as Key)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <DayRow
+                days={sch.days}
+                onChange={(days) => update({ schedule: { ...sch, days } })}
+                ink={ink}
+                accent={accent}
+              />
 
-              <View style={[styles.divider, { backgroundColor: ink.track }]} />
+              <Divider ink={ink} />
               <Hour
                 label={t('scheduleFrom')}
                 value={sch.from}
@@ -256,7 +230,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
                 ink={ink}
                 accent={accent}
               />
-              <View style={[styles.divider, { backgroundColor: ink.track }]} />
+              <Divider ink={ink} />
               <Hour
                 label={t('scheduleTo')}
                 value={sch.to}
@@ -265,21 +239,37 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
                 accent={accent}
               />
 
+              <Divider ink={ink} />
+              {/* Свойство расписания, а не строка в общем списке уведомлений:
+                  тогда заголовок «Как это работает» над ним остаётся честным. */}
+              <Toggle
+                label={t('schAnnounce')}
+                sub={t('schAnnounceSub')}
+                on={sch.announce}
+                onPress={() => {
+                  const next = !sch.announce;
+                  update({ schedule: { ...sch, announce: next } });
+                  if (next) Notify.ensurePermission();
+                }}
+                ink={ink}
+                accent={accent}
+              />
+
               {/* Три состояния окна, и все три молчат, когда всё хорошо.
                   «Заведено: 5» показывать нельзя — это плашка со
                   счётчиком, а такие с экрана уже удаляли. */}
               {sch.from === sch.to ? (
-                <Text style={[styles.foot, { color: ink.secondary }]}>
+                <Text style={[rowStyles.foot, { color: ink.secondary }]}>
                   {t('scheduleSameTime')}
                 </Text>
               ) : sch.from > sch.to ? (
-                <Text style={[styles.foot, { color: ink.tertiary }]}>
+                <Text style={[rowStyles.foot, { color: ink.tertiary }]}>
                   {t('schOvernight')}
                 </Text>
               ) : null}
 
               {armed === 0 && sch.days.length > 0 && sch.from !== sch.to ? (
-                <Text style={[styles.foot, { color: ink.secondary }]}>
+                <Text style={[rowStyles.foot, { color: ink.secondary }]}>
                   {`${t('schedFailed')} · ${t('schedFailedSub')}`}
                 </Text>
               ) : null}
@@ -317,98 +307,6 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   );
 }
 
-/**
- * Переключатель с одной строкой пояснения под подписью.
- *
- * Именно так это устроено у всех, кто делает то же самое: TIDE, Brick,
- * stoic. Название режима само по себе ничего не сообщает — «строгий»
- * может значить что угодно, — а вынести объяснение отдельным абзацем
- * вниз экрана значит превратить настройки в инструкцию. Одна строка
- * на месте решает и то и другое.
- */
-function Toggle({
-  label,
-  sub,
-  on,
-  onPress,
-  ink,
-  accent,
-}: {
-  label: string;
-  sub: string;
-  on: boolean;
-  onPress: () => void;
-  ink: Ink;
-  accent: string;
-}) {
-  return (
-    <Pressable
-      onPress={() => {
-        Haptics.selectionAsync().catch(() => {});
-        onPress();
-      }}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: on }}
-    >
-      <View style={styles.rowLeft}>
-        <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
-        <Text style={[styles.rowSub, { color: ink.tertiary }]}>{sub}</Text>
-      </View>
-      {/* Тумблер свой: системный Switch — единственный элемент,
-          который не подчиняется нашей палитре. */}
-      <View style={[styles.track, { backgroundColor: on ? accent : ink.track }]}>
-        <View style={[styles.knob, on && styles.knobOn]} />
-      </View>
-    </Pressable>
-  );
-}
-
-/** Час с шагом в единицу. Минут нет: окно, начинающееся в 9:07, не держат */
-function Hour({
-  label,
-  value,
-  onChange,
-  ink,
-  accent,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  ink: Ink;
-  accent: string;
-}) {
-  const step = (d: number) => {
-    Haptics.selectionAsync().catch(() => {});
-    onChange((value + d + 24) % 24);
-  };
-
-  return (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
-      <View style={styles.stepper}>
-        <Pressable
-          onPress={() => step(-1)}
-          style={({ pressed }) => [styles.stepBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={`${label} −1`}
-        >
-          <SymbolView name="minus" size={13} tintColor={accent} weight="bold" />
-        </Pressable>
-        <Text style={[styles.stepValue, { color: ink.primary }]}>{`${value}:00`}</Text>
-        <Pressable
-          onPress={() => step(1)}
-          style={({ pressed }) => [styles.stepBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel={`${label} +1`}
-        >
-          <SymbolView name="plus" size={13} tintColor={accent} weight="bold" />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: 20 },
@@ -430,17 +328,6 @@ const styles = StyleSheet.create({
   },
   card: { overflow: 'hidden' },
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-  },
-  rowLeft: { flex: 1, gap: 2, paddingRight: 14 },
-  rowLabel: { fontSize: 15.5, fontWeight: '500' },
-  rowSub: { fontSize: 12.5, lineHeight: 16 },
-  pressed: { opacity: 0.6 },
 
   // Предупреждение об отозванном разрешении: значок и две строки.
   warn: {
@@ -452,51 +339,13 @@ const styles = StyleSheet.create({
   },
   warnText: { flex: 1, gap: 2 },
   sub: { fontSize: 12.5, lineHeight: 16 },
-  /**
-   * Подпись под расписанием — только для состояний, о которых надо
-   * сказать: окно через полночь, совпавшие часы, не заведённые окна.
-   * Когда всё в порядке, её нет вовсе.
-   */
-  foot: {
-    fontSize: 12.5,
-    lineHeight: 17,
-    paddingHorizontal: 16,
-    paddingTop: 2,
-    paddingBottom: 14,
-  },
-  divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
-
-  track: { width: 46, height: 28, borderRadius: 14, padding: 3, justifyContent: 'center' },
-  knob: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  knobOn: { alignSelf: 'flex-end' },
-
-  days: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 14 },
-  day: {
-    flex: 1,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+  rowLabel: { fontSize: 15.5, fontWeight: '500' },
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
   },
-  dayText: { fontSize: 12, fontWeight: '600' },
-
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  stepValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-    minWidth: 48,
-    textAlign: 'center',
-  },
+  pressed: { opacity: 0.6 },
 });

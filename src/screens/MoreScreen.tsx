@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
@@ -11,6 +11,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GlassPane } from '../components/GlassPane';
+import { DayRow, Divider, Hour, Toggle } from '../components/SettingsRows';
+import * as Notify from '../notify';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useSettings, useT, type ThemeMode } from '../settings';
 import { useSubscribed } from '../subscription';
@@ -39,7 +41,7 @@ const PRESET_LABEL: Record<PresetKey, Key> = {
 
 const PRESET_ORDER: PresetKey[] = ['classic', 'deep', 'brief'];
 
-type SectionKey = 'appearance' | 'durations' | 'language';
+type SectionKey = 'notifications' | 'appearance' | 'durations' | 'language';
 
 /**
  * Настройки свёрнуты в раскрывающиеся разделы.
@@ -60,6 +62,27 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
   const accent = PHASES[scheme].focus.accent;
 
   const [open, setOpen] = useState<SectionKey | null>(null);
+
+  /**
+   * Разрешение на уведомления перечитываем при каждом возвращении на
+   * передний план: человек мог отозвать его в системных настройках, и
+   * тумблер «Вкл» поверх запрета — прямое враньё.
+   */
+  const [perm, setPerm] = useState<Notify.PermissionState>('undetermined');
+  useEffect(() => {
+    const read = () => {
+      Notify.permissionState().then(setPerm);
+    };
+    read();
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') read();
+    });
+    return () => sub.remove();
+  }, []);
+
+  const notif = settings.notifications;
+  const setNotif = (patch: Partial<typeof notif>) =>
+    update({ notifications: { ...notif, ...patch } });
 
   const toggle = (k: SectionKey) => {
     Haptics.selectionAsync().catch(() => {});
@@ -102,6 +125,96 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: ink.primary }]}>{t('moreTitle')}</Text>
+
+        {/* Первым: это единственный раздел, куда приходят с жалобой
+            («выключи звук»), остальные три настраивают один раз. И только
+            его свёрнутая сводка умеет сообщить о поломке. */}
+        <Section
+          title={t('sectionNotifications')}
+          summary={
+            perm === 'denied'
+              ? t('notifDenied')
+              : notif.phaseEnd || notif.daily
+                ? t('notifOn')
+                : t('notifOff')
+          }
+          open={open === 'notifications'}
+          onToggle={() => toggle('notifications')}
+          scheme={scheme}
+          ink={ink}
+        >
+          {/* Единственный правдивый способ показать состояние, которое
+              человек изменил вне нашего приложения. */}
+          {perm === 'denied' ? (
+            <Pressable
+              onPress={() => Linking.openSettings()}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.rowLabel, { color: ink.primary }]}>
+                {t('notifAllow')}
+              </Text>
+              <SymbolView
+                name="chevron.right"
+                size={12}
+                tintColor={ink.tertiary}
+                weight="semibold"
+              />
+            </Pressable>
+          ) : null}
+
+          {/* Переключатели живут независимо от разрешения: намерение и
+              возможность — разные вещи, и когда разрешение появится,
+              очевидное заработает само, без второго похода в настройки. */}
+          <Toggle
+            label={t('notifPhase')}
+            sub={t('notifPhaseSub')}
+            on={notif.phaseEnd && perm !== 'denied'}
+            locked={perm === 'denied'}
+            onPress={() => {
+              const next = !notif.phaseEnd;
+              setNotif({ phaseEnd: next, askedAt: notif.askedAt ?? Date.now() });
+              if (next) Notify.ensurePermission().then(() => Notify.permissionState().then(setPerm));
+            }}
+            ink={ink}
+            accent={accent}
+          />
+
+          <Divider ink={ink} />
+
+          <Toggle
+            label={t('notifDaily')}
+            sub={t('notifDailySub')}
+            on={notif.daily && perm !== 'denied'}
+            locked={perm === 'denied'}
+            onPress={() => {
+              const next = !notif.daily;
+              setNotif({ daily: next, askedAt: notif.askedAt ?? Date.now() });
+              if (next) Notify.ensurePermission().then(() => Notify.permissionState().then(setPerm));
+            }}
+            ink={ink}
+            accent={accent}
+          />
+
+          {notif.daily && perm !== 'denied' ? (
+            <>
+              <DayRow
+                days={notif.dailyDays}
+                onChange={(dailyDays) => setNotif({ dailyDays })}
+                ink={ink}
+                accent={accent}
+              />
+              <Divider ink={ink} />
+              <Hour
+                label={t('notifDailyAt')}
+                value={notif.dailyHour}
+                onChange={(dailyHour) => setNotif({ dailyHour })}
+                ink={ink}
+                accent={accent}
+              />
+            </>
+          ) : null}
+        </Section>
 
         <Section
           title={t('sectionAppearance')}
