@@ -40,5 +40,11 @@ yarn-error.*
 /ios
 /android
 
-# Генерируется плагином react-native-device-activity при каждом prebuild
-targets/
+# Три расширения Screen Time плагин react-native-device-activity копирует
+# сюда из node_modules при каждом prebuild — хранить их незачем.
+targets/*
+
+# А живая активность написана руками, и это единственный её экземпляр.
+!targets/liveactivity/
+# Кроме прав доступа: их плагин выводит из expo-target.config.js.
+targets/liveactivity/generated.entitlements

@@ -12,7 +12,8 @@
       "bundleIdentifier": "kz.asset.focus",
       "appleTeamId": "593MRAYJHB",
       "infoPlist": {
-        "NSFamilyControlsUsageDescription": "Чтобы закрывать выбранные тобой приложения на время сессии фокуса."
+        "NSFamilyControlsUsageDescription": "Чтобы закрывать выбранные тобой приложения на время сессии фокуса.",
+        "NSSupportsLiveActivities": true
       },
       "entitlements": {
         "com.apple.developer.family-controls": true

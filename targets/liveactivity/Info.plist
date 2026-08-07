@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>NSExtension</key>
+    <dict>
+      <key>NSExtensionPointIdentifier</key>
+      <string>com.apple.widgetkit-extension</string>
+    </dict>
+    <!--
+      Шрифт лежит в assets и копируется в расширение, но без этого списка
+      система его не регистрирует: Font.custom молча отдаст системный
+      гротеск, и ошибки нигде не будет. Имена здесь — имена файлов,
+      а в Swift используются PostScript-имена (PlayfairDisplay-Bold).
+    -->
+    <key>UIAppFonts</key>
+    <array>
+      <string>PlayfairDisplay-600.ttf</string>
+      <string>PlayfairDisplay-700.ttf</string>
+    </array>
+  </dict>
+</plist>

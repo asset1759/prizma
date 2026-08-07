@@ -27,6 +27,8 @@ import {
   stopBlocking,
 } from '../blocking';
 
+import * as LiveActivity from '../../modules/live-activity';
+
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
@@ -257,14 +259,87 @@ export function TimerScreen({
     );
   }, [deepFocus, endsAt, held]);
 
+  /**
+   * Живая активность: таймер на экране блокировки и в Dynamic Island.
+   *
+   * Зовём только на смену состояния, а не каждую секунду. Отсчёт там
+   * рисует сама iOS по паре дат — пока сессия идёт ровно, приложение
+   * может спать сколько угодно, цифры останутся верными.
+   *
+   * Начало отрезка передаём виртуальное: `endsAt` минус полная
+   * длительность фазы. Тогда дуга показывает пройденную часть всей
+   * фазы, а не отрезка после последней паузы — иначе после каждой
+   * паузы она откатывалась бы к нулю.
+   */
+  const liveOn = useRef(false);
+
+  useEffect(() => {
+    const engaged = running || left < duration;
+
+    if (!engaged) {
+      if (liveOn.current) {
+        LiveActivity.end();
+        liveOn.current = false;
+      }
+      return;
+    }
+
+    const endMs = endsAt ?? Date.now() + held * 1000;
+    const state = {
+      endsAt: endMs / 1000,
+      startedAt: (endMs - duration * 1000) / 1000,
+      running,
+      leftSeconds: left,
+      phase,
+      deep: deepFocus && phase === 'focus',
+    };
+
+    if (liveOn.current) {
+      LiveActivity.update(state);
+    } else {
+      liveOn.current = LiveActivity.start(state);
+    }
+    // `left` намеренно не в зависимостях: он меняется раз в секунду,
+    // а активность от этого не зависит — она считает время сама.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, endsAt, held, duration, phase, deepFocus]);
+
+  // Живая активность переживает закрытие экрана: сессия идёт, даже когда
+  // человек ушёл на другую вкладку. Гасим только при полном размонтировании.
+  useEffect(() => () => {
+    if (liveOn.current) LiveActivity.end();
+  }, []);
+
+  /**
+   * Паузу могли нажать на экране блокировки, пока приложение спало.
+   * Тогда ведущим оказывается экран блокировки — он единственный, кто
+   * наверняка жив в момент нажатия, — и таймер подстраивается под него,
+   * а не наоборот.
+   */
+  const lastStamp = useRef(0);
+
+  const adoptExternal = useCallback(() => {
+    const s = LiveActivity.readShared();
+    if (!s || s.stamp <= lastStamp.current) return;
+    lastStamp.current = s.stamp;
+
+    setRunning(s.running);
+    setHeld(s.leftSeconds);
+    setEndsAt(s.running ? s.endsAt * 1000 : null);
+    setNow(Date.now());
+  }, []);
+
   // Из фона можно вернуться через час — время должно быть верным сразу,
   // не дожидаясь ближайшей границы минуты.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') setNow(Date.now());
+      if (s === 'active') {
+        setNow(Date.now());
+        adoptExternal();
+      }
     });
     return () => sub.remove();
-  }, []);
+  }, [adoptExternal]);
 
   /**
    * Регулятор доступен, пока не потрачено ни секунды. Привязка к startedAt
