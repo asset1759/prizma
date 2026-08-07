@@ -24,7 +24,6 @@ export const en = {
   // Экран таймера
   minutesShort: 'MIN',
   holdToReset: 'Hold to reset',
-  presetQuietHome: 'Quiet home',
   blockingOff: 'Off',
   blockedCount: '{count} blocked',
 

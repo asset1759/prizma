@@ -14,7 +14,6 @@ export const pt: Dict = {
 
   minutesShort: 'MIN',
   holdToReset: 'Segure para zerar',
-  presetQuietHome: 'Casa em silêncio',
   blockingOff: 'Desligado',
   blockedCount: '{count} bloqueados',
 

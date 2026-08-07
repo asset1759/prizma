@@ -26,6 +26,7 @@ import {
   ensureAuthorized,
   hasSelection,
   listId,
+  listSize,
   startBlocking,
   stopBlocking,
 } from '../blocking';
@@ -44,12 +45,19 @@ import {
   PHASES,
   SERIF_BOLD,
   SESSIONS_PER_ROUND,
+  matchPreset,
   formatEndTime,
   formatTimeOfDay,
   withAlpha,
   type Ambient,
   type Phase,
 } from '../theme';
+
+const PRESET_LABEL = {
+  classic: 'presetClassic',
+  deep: 'presetDeep',
+  brief: 'presetBrief',
+} as const;
 
 const PHASE_KEY = {
   focus: 'phaseFocus',
@@ -591,6 +599,22 @@ export function TimerScreen({
    */
   const lockedByStrict = settings.strict && deepFocus && running;
 
+  /**
+   * Обе плашки наверху показывают настоящее.
+   *
+   * Раньше слева стоял «Тихий дом» — название пресета из первого макета,
+   * за которым ничего не появилось, — а справа зашитая цифра 12. Плашка,
+   * которая всегда говорит одно и то же, хуже отсутствующей: она врёт,
+   * и человек перестаёт верить остальным.
+   */
+  const presetName = (() => {
+    const k = matchPreset(saved);
+    return k ? t(PRESET_LABEL[k]) : t('presetCustom');
+  })();
+
+  const blocked = listSize(settings.appList);
+  const blockedCount = blocked ? blocked.apps + blocked.categories : 0;
+
   const refuseStrict = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     Alert.alert(t('strictTitle'), t('strictRunning'));
@@ -734,7 +758,7 @@ export function TimerScreen({
           <GlassPane style={styles.chip} radius={16} scheme={skin.glassScheme}>
             <View style={[styles.dot, { backgroundColor: skin.accentHi }]} />
             <Text style={[styles.chipText, { color: skin.ink.primary }]} numberOfLines={1}>
-              {t('presetQuietHome')}
+              {presetName}
             </Text>
           </GlassPane>
 
@@ -753,7 +777,7 @@ export function TimerScreen({
               weight="medium"
             />
             <Text style={[styles.chipText, { color: skin.ink.primary }]} numberOfLines={1}>
-              {deepFocus ? t('blockedCount', { count: 12 }) : t('blockingOff')}
+              {deepFocus ? t('blockedCount', { count: blockedCount }) : t('blockingOff')}
             </Text>
           </GlassPane>
         </View>

@@ -13,7 +13,6 @@ export const de: Dict = {
 
   minutesShort: 'MIN',
   holdToReset: 'Halten zum Zurücksetzen',
-  presetQuietHome: 'Stilles Zuhause',
   blockingOff: 'Aus',
   blockedCount: '{count} gesperrt',
 
