@@ -9,7 +9,7 @@ import { GlassPane } from '../components/GlassPane';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { ensureAuthorized, listId, listSize } from '../blocking';
 import { applySchedule } from '../schedule';
-import { useSettings, useT } from '../settings';
+import { useSettings, useT, useTn } from '../settings';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
 import type { Key } from '../i18n';
 
@@ -32,6 +32,7 @@ type Ink = (typeof INK)['dark'];
  */
 export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const t = useT();
+  const tn = useTn();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const ink = INK[scheme];
@@ -45,6 +46,19 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const [live, setLive] = useState<{ apps: number; categories: number } | null | undefined>();
 
   const size = live !== undefined ? live : listSize(list);
+
+  /**
+   * Складываем только из непустого. Раньше выбор одних категорий давал
+   * «0 прил. · 13 катег.» — ноль впереди читается как «ничего не вышло»,
+   * хотя выбрано было как раз всё.
+   */
+  const summary = (() => {
+    if (size === null) return t('listEmpty');
+    const parts: string[] = [];
+    if (size.apps > 0) parts.push(tn('apps', size.apps));
+    if (size.categories > 0) parts.push(tn('cats', size.categories));
+    return parts.length > 0 ? parts.join(' · ') : t('listEmpty');
+  })();
 
   /**
    * Расписание живёт в системе, а не у нас: заводим его заново на каждое
@@ -91,14 +105,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
             accessibilityRole="button"
           >
             <Text style={[styles.rowLabel, { color: ink.primary }]}>
-              {size === null
-                ? t('listEmpty')
-                : size.categories > 0
-                  ? t('listCountWithCategories', {
-                      apps: size.apps,
-                      categories: size.categories,
-                    })
-                  : t('listCount', { apps: size.apps })}
+              {summary}
             </Text>
             <SymbolView
               name="chevron.right"

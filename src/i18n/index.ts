@@ -75,4 +75,26 @@ export function translate(
   );
 }
 
+/**
+ * Форма числительного.
+ *
+ * `Intl.PluralRules` в Hermes нет — проверено на устройстве, поэтому
+ * правила приходится держать здесь. Русскому нужны три формы, остальным
+ * нашим языкам хватает двух: у них `few` просто совпадает с `many`.
+ *
+ * Правило для русского: 1, 21, 31 — но не 11; 2–4, 22–24 — но не 12–14;
+ * всё прочее — третья форма.
+ */
+export type PluralForm = 'One' | 'Few' | 'Many';
+
+export function pluralForm(lang: Lang, n: number): PluralForm {
+  if (lang !== 'ru') return n === 1 ? 'One' : 'Many';
+
+  const ones = n % 10;
+  const tens = n % 100;
+  if (ones === 1 && tens !== 11) return 'One';
+  if (ones >= 2 && ones <= 4 && (tens < 12 || tens > 14)) return 'Few';
+  return 'Many';
+}
+
 export type { Dict, Key };

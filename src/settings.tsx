@@ -3,6 +3,7 @@ import { useColorScheme } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 
 import {
+  pluralForm,
   resolveLang,
   translate,
   type Key,
@@ -173,6 +174,23 @@ export function useT() {
   return useCallback(
     (key: Key, vars?: Record<string, string | number>) => translate(lang, key, vars),
     [lang]
+  );
+}
+
+/**
+ * Числительное с правильной формой: `tn('apps', 12)` → «12 приложений».
+ *
+ * Ключи собираются из основы и формы — `appsOne`, `appsFew`, `appsMany`.
+ * Отдельный хук, а не флаг у `t`, чтобы в местах без чисел не приходилось
+ * думать о формах вовсе.
+ */
+export function useTn() {
+  const lang = useLang();
+  const t = useT();
+  return useCallback(
+    (base: 'apps' | 'cats', n: number) =>
+      t(`${base}${pluralForm(lang, n)}` as Key, { n }),
+    [lang, t]
   );
 }
 
