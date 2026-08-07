@@ -306,8 +306,11 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
           ) : null}
         </View>
 
+        {/* У пустой карточки свой верхний отступ: в остальных состояниях
+            заголовок от содержимого отделяют сегмент и пейджер, а здесь их
+            нет, и она подъезжает к «Прогрессу» вплотную. */}
         {empty ? (
-          <GlassPane style={styles.card} radius={22} scheme={scheme}>
+          <GlassPane style={[styles.card, styles.emptyCard]} radius={22} scheme={scheme}>
             <Text style={[styles.empty, { color: ink.secondary }]}>{t('statsEmpty')}</Text>
           </GlassPane>
         ) : (
@@ -969,5 +972,6 @@ const styles = StyleSheet.create({
   big: { fontSize: 32, fontFamily: SERIF_BOLD, letterSpacing: -0.6 },
   note: { fontSize: 13, fontWeight: '600' },
 
+  emptyCard: { marginTop: 18 },
   empty: { fontSize: 15, lineHeight: 21, padding: 18 },
 });
