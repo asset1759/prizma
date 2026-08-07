@@ -29,6 +29,8 @@ export type Settings = {
   language: LangSetting;
   /** Какой список приложений закрывает Deep Focus */
   appList: ListKey;
+  /** Строгий режим: начатую сессию нельзя оборвать */
+  strict: boolean;
   /** Длительности фаз в секундах, выставленные регулятором */
   durations: Record<Phase, number>;
 };
@@ -37,6 +39,7 @@ const DEFAULTS: Settings = {
   themeMode: 'auto',
   language: 'auto',
   appList: 'social',
+  strict: false,
   durations: {
     focus: PHASES.dark.focus.duration,
     short: PHASES.dark.short.duration,
@@ -63,6 +66,7 @@ function loadSync(): Settings {
       themeMode: raw.themeMode ?? DEFAULTS.themeMode,
       language: raw.language ?? DEFAULTS.language,
       appList: raw.appList ?? DEFAULTS.appList,
+      strict: raw.strict ?? DEFAULTS.strict,
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
     };
   } catch {

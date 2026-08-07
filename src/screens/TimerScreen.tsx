@@ -583,7 +583,25 @@ export function TimerScreen({
     setDeepFocus(true);
   }, [left, t, settings.appList]);
 
+  /**
+   * Строгая сессия идёт — оборвать её нельзя.
+   *
+   * Держим и щит, и сброс: выключить блокировку через сброс было бы
+   * обходным путём в один жест, и весь смысл режима пропал бы.
+   */
+  const lockedByStrict = settings.strict && deepFocus && running;
+
+  const refuseStrict = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    Alert.alert(t('strictTitle'), t('strictRunning'));
+  }, [t]);
+
   const toggleDeep = useCallback(async () => {
+    if (lockedByStrict) {
+      refuseStrict();
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
 
     if (deepFocus) {
@@ -609,7 +627,7 @@ export function TimerScreen({
     }
 
     enableDeep();
-  }, [deepFocus, enableDeep, settings.appList]);
+  }, [deepFocus, enableDeep, settings.appList, lockedByStrict, refuseStrict, t]);
 
   /**
    * Сброс возвращает текущую фазу к началу — не переключает на следующую.
@@ -620,6 +638,10 @@ export function TimerScreen({
    * ради таймера, который уже обнулён, не за чем.
    */
   const reset = useCallback(() => {
+    if (lockedByStrict) {
+      refuseStrict();
+      return;
+    }
     if (deepFocus) {
       stopBlocking();
       setDeepFocus(false);
@@ -646,7 +668,7 @@ export function TimerScreen({
         if (finished) runOnJS(setSettling)(false);
       }
     );
-  }, [deepFocus, phase, duration, progress]);
+  }, [deepFocus, phase, duration, progress, lockedByStrict, refuseStrict]);
 
   /**
    * Подсказка про удержание. Живёт здесь, а не в кнопке: ей нужно место

@@ -178,6 +178,43 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
         </GlassPane>
 
         <Text style={[styles.hint, { color: ink.tertiary }]}>{t('appsPickerNote')}</Text>
+
+        <Text style={[styles.section, { color: ink.tertiary }]}>{t('strictTitle')}</Text>
+        <GlassPane style={styles.card} radius={20} scheme={scheme}>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              update({ strict: !settings.strict });
+            }}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: settings.strict }}
+          >
+            <View style={styles.rowLeft}>
+              <Text style={[styles.rowLabel, { color: ink.primary }]}>
+                {t('strictTitle')}
+              </Text>
+            </View>
+            {/* Переключатель рисуем сами: системный Switch — единственный
+                элемент на экране, который не подчиняется нашей палитре. */}
+            <View
+              style={[
+                styles.switchTrack,
+                { backgroundColor: settings.strict ? accent : ink.track },
+              ]}
+            >
+              <View
+                style={[
+                  styles.switchKnob,
+                  settings.strict && styles.switchKnobOn,
+                ]}
+              />
+            </View>
+          </Pressable>
+        </GlassPane>
+
+        <Text style={[styles.hint, { color: ink.tertiary }]}>{t('strictHint')}</Text>
+        <Text style={[styles.hint, { color: ink.tertiary }]}>{t('strictHonest')}</Text>
         {!subscribed ? (
           <Text style={[styles.hint, { color: ink.tertiary }]}>
             {t('appsMultipleLocked')}
@@ -250,4 +287,31 @@ const styles = StyleSheet.create({
   editText: { fontSize: 14, fontWeight: '600' },
 
   hint: { fontSize: 12.5, lineHeight: 17, marginTop: 12, marginHorizontal: 4 },
+  section: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    marginTop: 26,
+    marginBottom: 8,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+  },
+  switchTrack: {
+    width: 46,
+    height: 28,
+    borderRadius: 14,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  switchKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  switchKnobOn: { alignSelf: 'flex-end' },
 });
