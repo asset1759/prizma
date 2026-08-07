@@ -917,23 +917,26 @@ const styles = StyleSheet.create({
   // кольце таймера. Иерархию задаёт кегль: 44 против 25. Задавать её
   // сменой начертания значило бы объявить эти числа другой породой,
   // хотя меряют они то же самое.
+  // Кегль ограничен снизу шириной ячейки: самое длинное, что сюда
+  // попадает, — «23 ч 59», и на трети экрана оно помещается до 32.
   cellValue: {
-    fontSize: 25,
+    fontSize: 32,
+    lineHeight: 38,
     fontFamily: SERIF_BOLD,
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
   // Единицы, наоборот, гротеском: это подписи, а не величины.
-  cellValueUnit: { fontSize: 14, fontWeight: '600' },
+  cellValueUnit: { fontSize: 17, fontWeight: '600' },
   cellFoot: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
     gap: 6,
-    height: 16,
+    height: 18,
   },
-  cellUnit: { fontSize: 12, fontWeight: '600' },
-  cellNote: { fontSize: 12, fontWeight: '700' },
+  cellUnit: { fontSize: 13, fontWeight: '600' },
+  cellNote: { fontSize: 13, fontWeight: '700' },
 
   ticks: {
     flexDirection: 'row',
