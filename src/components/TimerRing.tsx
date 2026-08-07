@@ -1,6 +1,15 @@
 import React, { useMemo, useRef } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
-import { Canvas, Group, LinearGradient, Path, Skia, vec } from '@shopify/react-native-skia';
+import {
+  BlurMask,
+  Canvas,
+  Group,
+  LinearGradient,
+  Path,
+  Skia,
+  SweepGradient,
+  vec,
+} from '@shopify/react-native-skia';
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
@@ -8,6 +17,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
+
+import { SPECTRUM } from '../theme';
 
 /**
  * Кольцо таймера в двух режимах.
@@ -56,6 +67,11 @@ export function TimerRing({
    * Ведёт экран, потому что только он знает про переходы старта и сброса.
    */
   dialOn,
+  /**
+   * Пробег спектра в конце сессии: 0 — покоя нет, 0…1 — голова луча
+   * идёт по кругу. Запускает экран, он один знает, что фаза досчитана.
+   */
+  flash,
   onChangeMinutes,
   labelColor,
   children,
@@ -67,6 +83,7 @@ export function TimerRing({
   minutes: number;
   editable: boolean;
   dialOn: SharedValue<number>;
+  flash: SharedValue<number>;
   onChangeMinutes?: (m: number) => void;
   labelColor: string;
   children?: React.ReactNode;
@@ -170,6 +187,23 @@ export function TimerRing({
     };
   });
 
+  /**
+   * Луч — короткий отрезок дуги, который проходит круг один раз.
+   *
+   * Голова идёт от нуля к единице, хвост тянется следом с отставанием
+   * в шестую часть круга. В начале отрезок вырастает от верхней точки,
+   * в конце туда же и втягивается — обрывов не видно.
+   */
+  const beamEnd = useDerivedValue(() => flash.value);
+  const beamStart = useDerivedValue(() => Math.max(0, flash.value - 0.16));
+
+  /** Разгорается быстро, гаснет плавно — чтобы след читался, а не мигал */
+  const beamOpacity = useDerivedValue(() => {
+    const p = flash.value;
+    if (p <= 0 || p >= 1) return 0;
+    return Math.min(1, p * 8) * Math.min(1, (1 - p) * 2.5);
+  });
+
   /** Шкала гаснет и загорается вместе с насечками */
   const scaleStyle = useAnimatedStyle(() => ({ opacity: dialOn.value }));
 
@@ -199,6 +233,28 @@ export function TimerRing({
             colors={[accentHi, accent]}
           />
         </Path>
+
+        {/* Призма: в конце сессии по кольцу один раз пробегает спектр.
+            Рисуется поверх всего — это событие, а не состояние. */}
+        <Group opacity={beamOpacity}>
+          <Path
+            path={path}
+            style="stroke"
+            strokeWidth={STROKE}
+            strokeCap="round"
+            start={beamStart}
+            end={beamEnd}
+          >
+            <SweepGradient
+              c={vec(CENTER, CENTER)}
+              colors={SPECTRUM}
+              start={-90}
+              end={270}
+            />
+            {/* Свечение, а не плоская полоса: призма про свет */}
+            <BlurMask blur={5} style="solid" />
+          </Path>
+        </Group>
 
         {/* Насечки поверх заливки, обрезаны по её текущей длине */}
         <Group clip={tickClip} opacity={dialOn} layer>

@@ -117,6 +117,13 @@ export function TimerScreen({
 
   const progress = useSharedValue(0);
 
+  /**
+   * Пробег спектра в конце сессии — та самая призма, от которой имя.
+   * Показывается только за досчитанную фазу: это награда, а не отклик
+   * на любое действие. Сброс её не запускает.
+   */
+  const flash = useSharedValue(0);
+
   // Deep Focus не отдельная фаза и не тема, а наложение поверх текущей фазы.
   // В светлой теме он всё равно тёмный: смысл режима в том, что свет уходит
   // из комнаты, и зависеть от настроек телефона это не должно.
@@ -211,6 +218,9 @@ export function TimerScreen({
    * не видно.
    */
   const [settling, setSettling] = useState(false);
+
+  /** Отложенный переход к следующей фазе — ждёт, пока пробежит луч */
+  const endTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Дуга догоняет отдельно от цифр: секундный скачок выглядел бы дёшево.
   useEffect(() => {
@@ -443,12 +453,40 @@ export function TimerScreen({
    * не досчитывая пропущенное по секунде.
    */
   useEffect(() => {
-    if (left === 0 && running) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setRunning(false);
-      advance(true);
-    }
-  }, [left, running, advance]);
+    if (left !== 0 || !running) return;
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setRunning(false);
+    /**
+     * Держим ноль на виду. Без этого остаток тут же возвращался к `held`,
+     * то есть к полной длительности, кольцо признавало себя регулятором
+     * и досчитанный круг пропадал в тот самый момент, ради которого всё
+     * и затевалось.
+     */
+    setHeld(0);
+
+    // Одним присваиванием: два подряд в одном такте Reanimated схлопывает
+    // до последнего и анимацию теряет.
+    flash.value = withSequence(
+      withTiming(0, { duration: 0 }),
+      withTiming(1, { duration: 1100, easing: Easing.out(Easing.cubic) })
+    );
+
+    if (endTimer.current) clearTimeout(endTimer.current);
+    /**
+     * Смену фазы придерживаем: иначе кольцо начнёт перекрашиваться и
+     * собирать шкалу прямо под лучом. К этому моменту луч уже гаснет,
+     * так что переход подхватывает его, а не перебивает.
+     */
+    endTimer.current = setTimeout(() => advance(true), 850);
+  }, [left, running, advance, flash]);
+
+  // Чистим только при размонтировании. Возврат из самого эффекта не годится:
+  // эффект перезапускается сразу же — состояние-то он и меняет, — и уборка
+  // гасила бы таймер, который только что поставили.
+  useEffect(() => () => {
+    if (endTimer.current) clearTimeout(endTimer.current);
+  }, []);
 
   const toggleRun = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -669,6 +707,7 @@ export function TimerScreen({
               minutes={Math.round(duration / 60)}
               editable={editable}
               dialOn={dialOn}
+              flash={flash}
               onChangeMinutes={setMinutes}
               labelColor={skin.ink.tertiary}
             >
