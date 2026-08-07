@@ -12,8 +12,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-activity';
@@ -33,7 +35,7 @@ import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useResolvedScheme, useSettings } from '../settings';
-import { TimerRing } from '../components/TimerRing';
+import { MAX_MIN, TimerRing } from '../components/TimerRing';
 import {
   DEEP_FOCUS,
   INK,
@@ -384,6 +386,31 @@ export function TimerScreen({
       return;
     }
 
+    /**
+     * Старт с нетронутого регулятора: дуга отматывается к нулю и уже
+     * оттуда растёт заново.
+     *
+     * Без этого она перескакивала одним кадром. Регулятор и прогресс
+     * меряют разное: у первого полный круг — час шкалы, у второго — вся
+     * сессия. Двадцать пять минут на регуляторе стоят на сорока-с-лишним
+     * процентах круга, а прогресс сессии в этот момент равен нулю, и
+     * переход между ними выглядел обрывом.
+     *
+     * Отмотка эту разницу проговаривает: круг был про минуты, стал про
+     * сессию. Продолжение с паузы её не делает — там дуга уже на своём
+     * месте, и откат читался бы как потеря сделанного.
+     */
+    if (left === duration) {
+      // Одним присваиванием, через последовательность. Двумя подряд —
+      // сначала сырое значение, потом анимация — не работает: в одном
+      // такте Reanimated оставляет последнюю запись и отбрасывает
+      // анимацию, дуга просто замирает на месте регулятора.
+      progress.value = withSequence(
+        withTiming(duration / (MAX_MIN * 60), { duration: 0 }),
+        withTiming(0, { duration: 560, easing: Easing.inOut(Easing.cubic) })
+      );
+    }
+
     const t = Date.now();
     // `now` двигаем вместе с дедлайном. Вне сессии он обновляется раз
     // в минуту и может быть на полминуты позади — остаток на один кадр
@@ -394,7 +421,7 @@ export function TimerScreen({
     // Момент старта фиксируем один раз за сессию: пауза не должна
     // сдвигать левую границу диапазона.
     setStartedAt((prev) => prev ?? new Date(t));
-  }, [running, left]);
+  }, [running, left, duration, progress]);
 
   const enableDeep = useCallback(() => {
     startBlocking(formatEndTime(left));
