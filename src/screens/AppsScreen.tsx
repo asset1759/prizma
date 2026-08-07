@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,7 @@ import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { LIST_KEYS, ensureAuthorized, listId, listSize, type ListKey } from '../blocking';
 import { useSettings, useT } from '../settings';
 import { useSubscribed } from '../subscription';
+import { applySchedule } from '../schedule';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
 import type { Key } from '../i18n';
 
@@ -38,6 +39,17 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const subscribed = useSubscribed();
   const ink = INK[scheme];
   const accent = PHASES[scheme].focus.accent;
+
+  const sch = settings.schedule;
+
+  /**
+   * Расписание живёт в системе, а не у нас: заводим его заново на каждое
+   * изменение. Здесь же оно восстанавливается после переустановки —
+   * приложение стёрли, а настройка осталась в файле.
+   */
+  useEffect(() => {
+    applySchedule(sch, settings.appList);
+  }, [sch, settings.appList]);
 
   /** Какой список сейчас открыт в системном выборе Apple */
   const [editing, setEditing] = useState<ListKey | null>(null);
@@ -215,6 +227,103 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
 
         <Text style={[styles.hint, { color: ink.tertiary }]}>{t('strictHint')}</Text>
         <Text style={[styles.hint, { color: ink.tertiary }]}>{t('strictHonest')}</Text>
+
+        <Text style={[styles.section, { color: ink.tertiary }]}>{t('scheduleTitle')}</Text>
+        <GlassPane style={styles.card} radius={20} scheme={scheme}>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              update({ schedule: { ...sch, on: !sch.on } });
+            }}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: sch.on }}
+          >
+            <Text style={[styles.rowLabel, { color: ink.primary }]}>{t('scheduleOn')}</Text>
+            <View
+              style={[
+                styles.switchTrack,
+                { backgroundColor: sch.on ? accent : ink.track },
+              ]}
+            >
+              <View style={[styles.switchKnob, sch.on && styles.switchKnobOn]} />
+            </View>
+          </Pressable>
+
+          {sch.on ? (
+            <>
+              <View style={[styles.divider, { backgroundColor: ink.track }]} />
+
+              <View style={styles.row}>
+                <Text style={[styles.rowLabel, { color: ink.primary }]}>
+                  {t('scheduleDays')}
+                </Text>
+              </View>
+              <View style={styles.days}>
+                {/* Порядок с понедельника: воскресенье первым — привычка
+                    американского календаря, а рынки у нас другие. */}
+                {[2, 3, 4, 5, 6, 7, 1].map((d) => {
+                  const picked = sch.days.includes(d);
+                  return (
+                    <Pressable
+                      key={d}
+                      onPress={() => {
+                        Haptics.selectionAsync().catch(() => {});
+                        update({
+                          schedule: {
+                            ...sch,
+                            days: picked
+                              ? sch.days.filter((x) => x !== d)
+                              : [...sch.days, d],
+                          },
+                        });
+                      }}
+                      style={[
+                        styles.day,
+                        { borderColor: picked ? accent : ink.track },
+                        picked && { backgroundColor: accent },
+                      ]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: picked }}
+                    >
+                      <Text
+                        style={[
+                          styles.dayText,
+                          { color: picked ? '#FFFFFF' : ink.secondary },
+                        ]}
+                      >
+                        {t(`day${d}` as Key)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: ink.track }]} />
+
+              <Hour
+                label={t('scheduleFrom')}
+                value={sch.from}
+                onChange={(v: number) => update({ schedule: { ...sch, from: v } })}
+                ink={ink}
+                accent={accent}
+              />
+              <View style={[styles.divider, { backgroundColor: ink.track }]} />
+              <Hour
+                label={t('scheduleTo')}
+                value={sch.to}
+                onChange={(v: number) => update({ schedule: { ...sch, to: v } })}
+                ink={ink}
+                accent={accent}
+              />
+            </>
+          ) : null}
+        </GlassPane>
+
+        {sch.on && sch.from === sch.to ? (
+          <Text style={[styles.hint, { color: accent }]}>{t('scheduleSameTime')}</Text>
+        ) : null}
+        <Text style={[styles.hint, { color: ink.tertiary }]}>{t('scheduleHint')}</Text>
         {!subscribed ? (
           <Text style={[styles.hint, { color: ink.tertiary }]}>
             {t('appsMultipleLocked')}
@@ -247,6 +356,51 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
         />
       ) : null}
     </SafeAreaView>
+  );
+}
+
+/** Час с шагом в единицу. Минут нет намеренно — см. подпись под разделом */
+function Hour({
+  label,
+  value,
+  onChange,
+  ink,
+  accent,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  ink: (typeof INK)['dark'];
+  accent: string;
+}) {
+  const step = (d: number) => {
+    Haptics.selectionAsync().catch(() => {});
+    onChange((value + d + 24) % 24);
+  };
+
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
+      <View style={styles.stepper}>
+        <Pressable
+          onPress={() => step(-1)}
+          style={({ pressed }) => [styles.stepBtn, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} −1`}
+        >
+          <SymbolView name="minus" size={13} tintColor={accent} weight="bold" />
+        </Pressable>
+        <Text style={[styles.stepValue, { color: ink.primary }]}>{`${value}:00`}</Text>
+        <Pressable
+          onPress={() => step(1)}
+          style={({ pressed }) => [styles.stepBtn, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} +1`}
+        >
+          <SymbolView name="plus" size={13} tintColor={accent} weight="bold" />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -314,4 +468,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   switchKnobOn: { alignSelf: 'flex-end' },
+  divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
+  days: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 14 },
+  day: {
+    flex: 1,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayText: { fontSize: 12, fontWeight: '600' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  stepValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+    minWidth: 48,
+    textAlign: 'center',
+  },
 });

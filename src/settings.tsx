@@ -10,6 +10,7 @@ import {
   type LangSetting,
 } from './i18n';
 import type { ListKey } from './blocking';
+import { DEFAULT_SCHEDULE, type Schedule } from './schedule';
 import { PHASES, type Phase, type Scheme } from './theme';
 
 /**
@@ -31,6 +32,8 @@ export type Settings = {
   appList: ListKey;
   /** Строгий режим: начатую сессию нельзя оборвать */
   strict: boolean;
+  /** Когда Deep Focus включается сам */
+  schedule: Schedule;
   /** Длительности фаз в секундах, выставленные регулятором */
   durations: Record<Phase, number>;
 };
@@ -40,6 +43,7 @@ const DEFAULTS: Settings = {
   language: 'auto',
   appList: 'social',
   strict: false,
+  schedule: DEFAULT_SCHEDULE,
   durations: {
     focus: PHASES.dark.focus.duration,
     short: PHASES.dark.short.duration,
@@ -67,6 +71,7 @@ function loadSync(): Settings {
       language: raw.language ?? DEFAULTS.language,
       appList: raw.appList ?? DEFAULTS.appList,
       strict: raw.strict ?? DEFAULTS.strict,
+      schedule: { ...DEFAULTS.schedule, ...(raw.schedule ?? {}) },
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
     };
   } catch {
