@@ -8,6 +8,9 @@ import {
   updateShield,
 } from 'react-native-device-activity';
 
+import type { Key } from './i18n';
+import type { T } from './settings';
+
 /**
  * Блокировка приложений через Screen Time.
  *
@@ -23,17 +26,17 @@ export const SELECTION_ID = 'deepFocus';
  * одной сессии текст не должен прыгать, а вот повторять его изо дня в день
  * бессмысленно — на третий раз человек перестаёт его читать.
  */
-const ENCOURAGEMENTS = [
-  'Продолжай работать, стремись к своей мечте.',
-  'Ты сам это выбрал. Дойди до конца.',
-  'Самое важное сейчас — не здесь.',
-  'Большое собирается из таких вот получасов.',
-  'Через час ты будешь рад, что не свернул.',
-  'Это и есть работа — остаться, когда тянет уйти.',
+const ENCOURAGEMENTS: Key[] = [
+  'encouragement1',
+  'encouragement2',
+  'encouragement3',
+  'encouragement4',
+  'encouragement5',
+  'encouragement6',
 ];
 
-function pickEncouragement(): string {
-  return ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+function pickEncouragement(t: T): string {
+  return t(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
 }
 
 /**
@@ -84,8 +87,8 @@ export function isBlocking(): boolean {
  * Одеваем щит — тот самый экран, который человек увидит, машинально открыв
  * соцсеть. Раскладку Apple менять не даёт, но все слоты наши.
  */
-export function dressShield(endsAt: string) {
-  if (!phrase) phrase = pickEncouragement();
+export function dressShield(t: T, endsAt: string) {
+  if (!phrase) phrase = pickEncouragement(t);
 
   updateShield(
     {
@@ -95,15 +98,15 @@ export function dressShield(endsAt: string) {
       // Не до конца непрозрачно — сквозь фон угадывается размытое
       // приложение, которое человек пытался открыть.
       backgroundColor: rgb('#0B1024', 0.82),
-      title: 'Ты в Deep Focus',
+      title: t('shieldTitle'),
       titleColor: rgb('#FFFFFF'),
       // Сначала фраза, потом факт: время разблокировки должно остаться
       // последним, что человек читает перед тем, как закрыть щит.
-      subtitle: `${phrase}\n\nПриложение откроется в ${endsAt}.`,
+      subtitle: `${phrase}\n\n${t('shieldOpensAt', { time: endsAt })}`,
       subtitleColor: rgb('#B9C6E8'),
       iconSystemName: 'shield.lefthalf.filled',
       iconTint: rgb('#7FA3FF'),
-      primaryButtonLabel: 'Вернуться к работе',
+      primaryButtonLabel: t('shieldButton'),
       primaryButtonLabelColor: rgb('#000000'),
       primaryButtonBackgroundColor: rgb('#FFFFFF'),
       // Второй кнопки нет намеренно: со щита сессию не оборвать.
@@ -122,11 +125,11 @@ export function dressShield(endsAt: string) {
   );
 }
 
-export function startBlocking(endsAt: string) {
+export function startBlocking(t: T, endsAt: string) {
   // Новая сессия — новая фраза. Повторять её изо дня в день бессмысленно:
   // на третий раз человек перестаёт её читать.
-  phrase = pickEncouragement();
-  dressShield(endsAt);
+  phrase = pickEncouragement(t);
+  dressShield(t, endsAt);
   blockSelection({ activitySelectionId: SELECTION_ID }, 'deep-focus-on');
 }
 

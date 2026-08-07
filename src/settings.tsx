@@ -2,6 +2,13 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { useColorScheme } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 
+import {
+  resolveLang,
+  translate,
+  type Key,
+  type Lang,
+  type LangSetting,
+} from './i18n';
 import { PHASES, type Phase, type Scheme } from './theme';
 
 /**
@@ -17,12 +24,15 @@ export type ThemeMode = 'auto' | 'light' | 'dark';
 export type Settings = {
   /** «auto» — следовать системе; остальное перекрывает её */
   themeMode: ThemeMode;
+  /** «auto» — следовать языку телефона */
+  language: LangSetting;
   /** Длительности фаз в секундах, выставленные регулятором */
   durations: Record<Phase, number>;
 };
 
 const DEFAULTS: Settings = {
   themeMode: 'auto',
+  language: 'auto',
   durations: {
     focus: PHASES.dark.focus.duration,
     short: PHASES.dark.short.duration,
@@ -47,6 +57,7 @@ function loadSync(): Settings {
     const raw = JSON.parse(f.textSync()) as Partial<Settings>;
     return {
       themeMode: raw.themeMode ?? DEFAULTS.themeMode,
+      language: raw.language ?? DEFAULTS.language,
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
     };
   } catch {
@@ -130,3 +141,25 @@ export function useResolvedScheme(): Scheme {
   const system: Scheme = useColorScheme() === 'light' ? 'light' : 'dark';
   return settings.themeMode === 'auto' ? system : settings.themeMode;
 }
+
+/** Действующий язык — так же, как тема: настройка перекрывает телефон */
+export function useLang(): Lang {
+  const { settings } = useSettings();
+  return resolveLang(settings.language);
+}
+
+/**
+ * Переводчик, привязанный к текущему языку.
+ *
+ * Функция, а не готовые строки: так экран берёт только то, что ему нужно,
+ * и смена языка перерисовывает всё сама — `useSettings` уже подписан.
+ */
+export function useT() {
+  const lang = useLang();
+  return useCallback(
+    (key: Key, vars?: Record<string, string | number>) => translate(lang, key, vars),
+    [lang]
+  );
+}
+
+export type T = ReturnType<typeof useT>;

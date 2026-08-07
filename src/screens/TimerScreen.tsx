@@ -35,7 +35,7 @@ import * as LiveActivity from '../../modules/live-activity';
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
-import { useResolvedScheme, useSettings } from '../settings';
+import { useResolvedScheme, useSettings, useT } from '../settings';
 import { MAX_MIN, TimerRing } from '../components/TimerRing';
 import {
   DEEP_FOCUS,
@@ -49,6 +49,12 @@ import {
   type Ambient,
   type Phase,
 } from '../theme';
+
+const PHASE_KEY = {
+  focus: 'phaseFocus',
+  short: 'phaseShort',
+  long: 'phaseLong',
+} as const;
 
 export function TimerScreen({
   /**
@@ -75,6 +81,7 @@ export function TimerScreen({
    */
   const [now, setNow] = useState(() => Date.now());
 
+  const t = useT();
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
   const { settings, setDuration: persistDuration } = useSettings();
@@ -117,7 +124,7 @@ export function TimerScreen({
     const deep = deepFocus && phase === 'focus';
     if (deep) {
       return {
-        label: DEEP_FOCUS.label,
+        label: t('deepFocus'),
         accent: DEEP_FOCUS.accent,
         accentHi: DEEP_FOCUS.accentHi,
         canvas: DEEP_FOCUS.canvas,
@@ -127,7 +134,7 @@ export function TimerScreen({
       };
     }
     return {
-      label: spec.label,
+      label: t(PHASE_KEY[phase]),
       accent: spec.accent,
       accentHi: spec.accentHi,
       canvas: spec.canvas,
@@ -139,7 +146,7 @@ export function TimerScreen({
       ink: INK[scheme],
       glassScheme: scheme,
     };
-  }, [deepFocus, phase, spec, scheme]);
+  }, [deepFocus, phase, spec, scheme, t]);
 
   /**
    * Недосчитанные фазы. Ушёл на перерыв в середине сессии — вернёшься
@@ -270,9 +277,10 @@ export function TimerScreen({
   useEffect(() => {
     if (!deepFocus) return;
     dressShield(
+      t,
       endsAt !== null ? formatTimeOfDay(new Date(endsAt)) : formatEndTime(held)
     );
-  }, [deepFocus, endsAt, held]);
+  }, [deepFocus, endsAt, held, t]);
 
   /**
    * Живая активность: таймер на экране блокировки и в Dynamic Island.
@@ -306,6 +314,7 @@ export function TimerScreen({
       running,
       leftSeconds: left,
       phase,
+      title: skin.label,
       deep: deepFocus && phase === 'focus',
     };
 
@@ -317,7 +326,7 @@ export function TimerScreen({
     // `left` намеренно не в зависимостях: он меняется раз в секунду,
     // а активность от этого не зависит — она считает время сама.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, endsAt, held, duration, phase, deepFocus]);
+  }, [running, endsAt, held, duration, phase, deepFocus, skin.label]);
 
   // Живая активность переживает закрытие экрана: сессия идёт, даже когда
   // человек ушёл на другую вкладку. Гасим только при полном размонтировании.
@@ -491,9 +500,9 @@ export function TimerScreen({
   }, [running, left, duration, progress]);
 
   const enableDeep = useCallback(() => {
-    startBlocking(formatEndTime(left));
+    startBlocking(t, formatEndTime(left));
     setDeepFocus(true);
-  }, [left]);
+  }, [left, t]);
 
   const toggleDeep = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
@@ -507,8 +516,8 @@ export function TimerScreen({
     const authorized = await ensureAuthorized();
     if (!authorized) {
       Alert.alert(
-        'Нужен доступ к Экранному времени',
-        'Без него приложение не сможет закрывать другие приложения на время сессии. Разрешение можно выдать в Настройках.'
+        t('screenTimeTitle'),
+        t('screenTimeBody')
       );
       return;
     }
@@ -623,7 +632,7 @@ export function TimerScreen({
           <GlassPane style={styles.chip} radius={16} scheme={skin.glassScheme}>
             <View style={[styles.dot, { backgroundColor: skin.accentHi }]} />
             <Text style={[styles.chipText, { color: skin.ink.primary }]} numberOfLines={1}>
-              Тихий дом
+              {t('presetQuietHome')}
             </Text>
           </GlassPane>
 
@@ -642,7 +651,7 @@ export function TimerScreen({
               weight="medium"
             />
             <Text style={[styles.chipText, { color: skin.ink.primary }]} numberOfLines={1}>
-              {deepFocus ? '12 закрыто' : 'Выключено'}
+              {deepFocus ? t('blockedCount', { count: 12 }) : t('blockingOff')}
             </Text>
           </GlassPane>
         </View>
@@ -695,7 +704,7 @@ export function TimerScreen({
                 <Animated.Text
                   style={[styles.minLabel, minStyle, { color: skin.ink.secondary }]}
                 >
-                  МИН
+                  {t('minutesShort')}
                 </Animated.Text>
               </Animated.View>
 
@@ -741,7 +750,7 @@ export function TimerScreen({
             style={[styles.hint, hintStyle, { color: skin.ink.secondary }]}
             pointerEvents="none"
           >
-            Держите, чтобы сбросить
+            {t('holdToReset')}
           </Animated.Text>
 
           <View style={styles.dockRow}>
@@ -756,14 +765,15 @@ export function TimerScreen({
               disabled={!canReset}
               onComplete={reset}
               onHoldChange={handleHold}
-              accessibilityLabel="Сбросить"
+              accessibilityLabel={t('a11yReset')}
+              accessibilityHint={t('a11yHoldHint')}
             />
 
             <Pressable
               onPress={toggleRun}
               style={({ pressed }) => [styles.liftMain, pressed && styles.btnPressed]}
               accessibilityRole="button"
-              accessibilityLabel={running ? 'Пауза' : 'Начать'}
+              accessibilityLabel={running ? t('a11yPause') : t('a11yStart')}
             >
               {/* Главное действие тоже стекло — выделяется плотностью материала
                   и тинтом фазы, а не сплошной заливкой. */}
@@ -790,7 +800,7 @@ export function TimerScreen({
               style={({ pressed }) => [styles.lift, pressed && styles.btnPressed]}
               accessibilityRole="switch"
               accessibilityState={{ checked: deepFocus }}
-              accessibilityLabel="Deep Focus"
+              accessibilityLabel={t('a11yDeepFocus')}
             >
               <GlassPane
                 style={styles.btnSide}
@@ -816,8 +826,8 @@ export function TimerScreen({
         {pickerOpen ? (
           <DeviceActivitySelectionSheetViewPersisted
             familyActivitySelectionId={SELECTION_ID}
-            headerText="Что закрываем на время сессии"
-            footerText="Звонки, сообщения и карты остаются доступны всегда."
+            headerText={t('pickerHeader')}
+            footerText={t('pickerFooter')}
             onDismissRequest={() => {
               setPickerOpen(false);
               if (hasSelection()) {

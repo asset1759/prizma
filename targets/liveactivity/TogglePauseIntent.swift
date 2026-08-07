@@ -51,6 +51,7 @@ enum SessionBridge {
   static let kRunning = "la.running"
   static let kLeft = "la.leftSeconds"
   static let kPhase = "la.phase"
+  static let kTitle = "la.title"
   static let kDeep = "la.deep"
   /// Метка последнего действия с экрана блокировки. Приложение сверяет её
   /// со своей и понимает, что состояние поменяли без него.
@@ -65,6 +66,7 @@ enum SessionBridge {
     let now = Date()
     let endsAt = Date(timeIntervalSince1970: d.double(forKey: kEndsAt))
     let phase = d.string(forKey: kPhase) ?? "focus"
+    let title = d.string(forKey: kTitle) ?? ""
     let deep = d.bool(forKey: kDeep)
 
     var next: PrizmaAttributes.ContentState
@@ -81,6 +83,7 @@ enum SessionBridge {
         running: false,
         leftSeconds: left,
         phase: phase,
+        title: title,
         deep: deep
       )
     } else {
@@ -97,6 +100,7 @@ enum SessionBridge {
         running: true,
         leftSeconds: left,
         phase: phase,
+        title: title,
         deep: deep
       )
     }

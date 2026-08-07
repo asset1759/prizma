@@ -54,6 +54,7 @@ export function HoldButton({
   onComplete,
   onHoldChange,
   accessibilityLabel,
+  accessibilityHint,
 }: {
   size: number;
   radius: number;
@@ -69,6 +70,7 @@ export function HoldButton({
   /** Экран показывает подсказку, пока палец на кнопке */
   onHoldChange?: (holding: boolean) => void;
   accessibilityLabel: string;
+  accessibilityHint: string;
 }) {
   const fill = useSharedValue(0);
   /** Видимость кольца отдельно от заполнения: дорожка нужна сразу */
@@ -171,7 +173,7 @@ export function HoldButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint="Удерживайте, чтобы подтвердить"
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!disabled }}
     >
       {/* Тень на обёртке, а не на стекле: поверх материала она гасит

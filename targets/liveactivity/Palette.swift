@@ -40,15 +40,6 @@ enum Palette {
     }
   }
 
-  static func label(_ phase: String, deep: Bool) -> String {
-    if deep { return "Deep Focus" }
-    switch phase {
-    case "short": return "Перерыв"
-    case "long": return "Длинный перерыв"
-    default: return "Фокус"
-    }
-  }
-
   static func symbol(_ phase: String, deep: Bool) -> String {
     if deep { return "shield.lefthalf.filled" }
     switch phase {

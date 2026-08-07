@@ -19,6 +19,8 @@ export type LiveState = {
   /** Остаток на паузе, секунды */
   leftSeconds: number;
   phase: string;
+  /** Подпись фазы, уже переведённая — расширение своего словаря не держит */
+  title: string;
   deep: boolean;
 };
 

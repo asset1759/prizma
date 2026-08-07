@@ -15,8 +15,6 @@ export type Phase = 'focus' | 'short' | 'long';
 export type Scheme = 'light' | 'dark';
 
 export type PhaseSpec = {
-  /** Подпись под таймером */
-  label: string;
   /** Длительность фазы в секундах */
   duration: number;
   /** Акцент — дуга прогресса, точки, свечение */
@@ -33,32 +31,23 @@ const DURATIONS: Record<Phase, number> = {
   long: 15 * 60,
 };
 
-const LABELS: Record<Phase, string> = {
-  focus: 'Фокус',
-  short: 'Перерыв',
-  long: 'Длинный перерыв',
-};
-
 // Третье пятно холста намеренно контрастное к фазе: тёплый уход снизу
 // оживляет экран и даёт стеклу дока что преломлять.
 export const PHASES: Record<Scheme, Record<Phase, PhaseSpec>> = {
   dark: {
     focus: {
-      label: LABELS.focus,
       duration: DURATIONS.focus,
       accent: '#6E5BFF',
       accentHi: '#A897FF',
       canvas: ['#6E5BFF', '#3B2BE0', '#2FDCC0'],
     },
     short: {
-      label: LABELS.short,
       duration: DURATIONS.short,
       accent: '#2FDCC0',
       accentHi: '#8DF5E4',
       canvas: ['#2FDCC0', '#0E8F7C', '#6E5BFF'],
     },
     long: {
-      label: LABELS.long,
       duration: DURATIONS.long,
       accent: '#FF9B63',
       accentHi: '#FFC79E',
@@ -69,21 +58,18 @@ export const PHASES: Record<Scheme, Record<Phase, PhaseSpec>> = {
   // текстом нужна светлая подложка, а стеклу — всё ещё что преломлять.
   light: {
     focus: {
-      label: LABELS.focus,
       duration: DURATIONS.focus,
       accent: '#5B4BE8',
       accentHi: '#8171F5',
       canvas: ['#C7BEFF', '#A99BFF', '#8FE4D6'],
     },
     short: {
-      label: LABELS.short,
       duration: DURATIONS.short,
       accent: '#12A48F',
       accentHi: '#2FDCC0',
       canvas: ['#9CEEDF', '#5FD9C4', '#B9AEFF'],
     },
     long: {
-      label: LABELS.long,
       duration: DURATIONS.long,
       accent: '#D2703A',
       accentHi: '#FF9B63',
@@ -97,7 +83,6 @@ export const PHASES: Record<Scheme, Record<Phase, PhaseSpec>> = {
  * Тёмный в обеих темах: в этом весь смысл режима.
  */
 export const DEEP_FOCUS = {
-  label: 'Deep Focus',
   accent: '#3D6BFF',
   accentHi: '#DCE6FF',
   canvas: ['#3D6BFF', '#1B2A9E', '#0C1330'] as [string, string, string],

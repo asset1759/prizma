@@ -35,7 +35,7 @@ struct PrizmaLiveActivity: Widget {
             .padding(.trailing, 4)
         }
         DynamicIslandExpandedRegion(.center) {
-          Text(Palette.label(context.state.phase, deep: context.state.deep))
+          Text(context.state.title)
             .font(Serif.semibold(17))
             .foregroundStyle(.white)
         }
@@ -65,7 +65,7 @@ private struct LockScreen: View {
       Dial(state: state, size: 52, line: 6)
 
       VStack(alignment: .leading, spacing: 2) {
-        Text(Palette.label(state.phase, deep: state.deep))
+        Text(state.title)
           .font(Serif.semibold(17))
           .foregroundStyle(.white)
 

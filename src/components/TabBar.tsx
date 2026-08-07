@@ -11,6 +11,9 @@ import Animated, {
 
 import { GLASS_AVAILABLE } from './GlassPane';
 import { INK, withAlpha, type Scheme } from '../theme';
+import { useT } from '../settings';
+import type { Key } from '../i18n';
+
 
 export type TabKey = 'timer' | 'apps' | 'stats' | 'more';
 
@@ -29,18 +32,18 @@ const SNAP = { damping: 26, stiffness: 420 } as const;
 /** Прыжок под палец при касании — ещё резче, это реакция, а не переход */
 const JUMP = { damping: 30, stiffness: 520 } as const;
 
-type TabSpec = { key: TabKey; label: string; icon: SFSymbol; iconActive: SFSymbol };
+type TabSpec = { key: TabKey; label: Key; icon: SFSymbol; iconActive: SFSymbol };
 
 export const TABS: TabSpec[] = [
-  { key: 'timer', label: 'Таймер', icon: 'timer', iconActive: 'timer' },
+  { key: 'timer', label: 'tabTimer' as const, icon: 'timer', iconActive: 'timer' },
   {
     key: 'apps',
-    label: 'Приложения',
+    label: 'tabApps' as const,
     icon: 'square.grid.2x2',
     iconActive: 'square.grid.2x2.fill',
   },
-  { key: 'stats', label: 'Итоги', icon: 'chart.bar', iconActive: 'chart.bar.fill' },
-  { key: 'more', label: 'Ещё', icon: 'gearshape', iconActive: 'gearshape.fill' },
+  { key: 'stats', label: 'tabStats' as const, icon: 'chart.bar', iconActive: 'chart.bar.fill' },
+  { key: 'more', label: 'tabMore' as const, icon: 'gearshape', iconActive: 'gearshape.fill' },
 ];
 
 /**
@@ -61,6 +64,7 @@ export function TabBar({
   scheme: Scheme;
   accent: string;
 }) {
+  const t = useT();
   const ink = INK[scheme];
   const [barWidth, setBarWidth] = useState(0);
   const cell = barWidth > 0 ? (barWidth - PAD * 2) / TABS.length : 0;
@@ -221,7 +225,7 @@ export function TabBar({
                   style={[styles.label, { color: on ? ink.primary : ink.tertiary }]}
                   numberOfLines={1}
                 >
-                  {tab.label}
+                  {t(tab.label)}
                 </Text>
               </View>
             );

@@ -78,6 +78,7 @@ public class LiveActivityModule: Module {
         "running": d.bool(forKey: SessionBridge.kRunning),
         "leftSeconds": d.integer(forKey: SessionBridge.kLeft),
         "phase": d.string(forKey: SessionBridge.kPhase) ?? "focus",
+        "title": d.string(forKey: SessionBridge.kTitle) ?? "",
         "deep": d.bool(forKey: SessionBridge.kDeep),
         "stamp": d.double(forKey: SessionBridge.kStamp),
       ]
@@ -95,7 +96,8 @@ public class LiveActivityModule: Module {
     guard let d = SessionBridge.store else { return }
     for key in [
       SessionBridge.kEndsAt, SessionBridge.kStartedAt, SessionBridge.kRunning,
-      SessionBridge.kLeft, SessionBridge.kPhase, SessionBridge.kDeep, SessionBridge.kStamp,
+      SessionBridge.kLeft, SessionBridge.kPhase, SessionBridge.kTitle,
+      SessionBridge.kDeep, SessionBridge.kStamp,
     ] {
       d.removeObject(forKey: key)
     }
@@ -111,6 +113,8 @@ struct SessionState: Record {
   @Field var running: Bool = false
   @Field var leftSeconds: Int = 0
   @Field var phase: String = "focus"
+  /// Подпись фазы, уже переведённая приложением
+  @Field var title: String = ""
   @Field var deep: Bool = false
 
   var content: PrizmaAttributes.ContentState {
@@ -120,6 +124,7 @@ struct SessionState: Record {
       running: running,
       leftSeconds: leftSeconds,
       phase: phase,
+      title: title,
       deep: deep
     )
   }
@@ -139,6 +144,7 @@ struct SessionState: Record {
     d.set(running, forKey: SessionBridge.kRunning)
     d.set(leftSeconds, forKey: SessionBridge.kLeft)
     d.set(phase, forKey: SessionBridge.kPhase)
+    d.set(title, forKey: SessionBridge.kTitle)
     d.set(deep, forKey: SessionBridge.kDeep)
     // Метку ставит только экран блокировки. Приложение своих изменений
     // не отмечает — иначе оно принимало бы за чужие свои же.

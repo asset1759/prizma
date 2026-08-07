@@ -7,7 +7,7 @@ import { TabBar, type TabKey } from './components/TabBar';
 import { MoreScreen } from './screens/MoreScreen';
 import { StubScreen } from './screens/StubScreen';
 import { TimerScreen } from './screens/TimerScreen';
-import { useResolvedScheme } from './settings';
+import { useResolvedScheme, useT } from './settings';
 import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
 
 /**
@@ -18,6 +18,7 @@ import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
  * кромке и стеклу нечего было бы преломлять.
  */
 export function RootScreen() {
+  const t = useT();
   const systemScheme = useResolvedScheme();
   const [tab, setTab] = useState<TabKey>('timer');
 
@@ -51,8 +52,8 @@ export function RootScreen() {
         <StubScreen
           scheme={scheme}
           icon="square.grid.2x2"
-          title="Приложения"
-          hint="Здесь будут наборы приложений: соцсети, игры, всё кроме звонков. Пока список выбирается системным экраном Apple при включении Deep Focus."
+          title={t('appsTitle')}
+          hint={t('appsHint')}
         />
       </Pane>
 
@@ -60,8 +61,8 @@ export function RootScreen() {
         <StubScreen
           scheme={scheme}
           icon="chart.bar"
-          title="Итоги"
-          hint="Сколько часов в фокусе, лучшее время дня, серия дней подряд."
+          title={t('statsTitle')}
+          hint={t('statsHint')}
         />
       </Pane>
 
