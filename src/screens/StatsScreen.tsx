@@ -531,14 +531,16 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
               </GlassPane>
             ) : null}
 
-            {/* ─────────── постоянство и рекорды ─────────── */}
-            <View style={styles.row}>
-              {data.streak >= 2 || data.best >= 3 ? (
-                <GlassPane style={[styles.card, styles.half]} radius={22} scheme={scheme}>
-                  <View style={styles.pad}>
-                    <Text style={[styles.kicker, { color: ink.tertiary }]}>
-                      {t('statsStreak')}
-                    </Text>
+            {/* ─────────── постоянство ─────────── */}
+            {data.streak >= 2 || data.best >= 3 ? (
+              <GlassPane style={styles.card} radius={22} scheme={scheme}>
+                <View style={styles.streakPad}>
+                  <Text style={[styles.kicker, { color: ink.tertiary }]}>
+                    {t('statsStreak')}
+                  </Text>
+                  {/* Текущая серия и рекорд в одной строке по краям: врозь
+                      они занимали бы две карточки ради двух чисел. */}
+                  <View style={styles.streakRow}>
                     <Text style={[styles.big, { color: ink.primary }]}>
                       {tn('streakD', Math.max(data.streak, 0))}
                     </Text>
@@ -548,37 +550,40 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
                         : t('statsStreakBest', { n: data.best })}
                     </Text>
                   </View>
-                </GlassPane>
-              ) : null}
+                </View>
+              </GlassPane>
+            ) : null}
 
-              {data.historyDays >= MIN_DAYS_FOR_RECORDS && data.records.day ? (
-                <GlassPane style={[styles.card, styles.half]} radius={22} scheme={scheme}>
-                  <View style={styles.pad}>
-                    <Text style={[styles.kicker, { color: ink.tertiary }]}>
-                      {t('statsRecords')}
-                    </Text>
-                    {(
-                      [
-                        ['statsRecDay', data.records.day?.sec],
-                        ['statsRecSession', data.records.session?.sec],
-                        ['statsRecWeek', data.records.week?.sec],
-                      ] as const
-                    ).map(([key, sec]) =>
-                      sec ? (
-                        <View key={key} style={styles.recRow}>
-                          <Text style={[styles.recKey, { color: ink.secondary }]}>
-                            {t(key)}
-                          </Text>
-                          <Text style={[styles.recVal, { color: ink.primary }]}>
-                            {dur(sec)}
-                          </Text>
-                        </View>
-                      ) : null
-                    )}
-                  </View>
-                </GlassPane>
-              ) : null}
-            </View>
+            {/* ─────────── рекорды ─────────── */}
+            {data.historyDays >= MIN_DAYS_FOR_RECORDS && data.records.day ? (
+              <GlassPane style={styles.card} radius={22} scheme={scheme}>
+                <View style={styles.pad}>
+                  <Text style={[styles.kicker, { color: ink.tertiary }]}>
+                    {t('statsRecords')}
+                  </Text>
+                </View>
+                {/* Той же сеткой, что и показатели периода. Таблица
+                    «ключ — значение» была единственным местом на экране,
+                    где число стояло не под своей подписью, и в половину
+                    ширины «15 ч 20 мин» упиралось в край карточки. */}
+                <Grid
+                  cells={[
+                    { label: t('statsRecDay'), ...durCell(data.records.day.sec) },
+                    data.records.session
+                      ? {
+                          label: t('statsRecSession'),
+                          ...durCell(data.records.session.sec),
+                        }
+                      : null,
+                    data.records.week
+                      ? { label: t('statsRecWeek'), ...durCell(data.records.week.sec) }
+                      : null,
+                  ]}
+                  ink={ink}
+                  accent={accent}
+                />
+              </GlassPane>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -912,6 +917,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     minHeight: 24,
     textAlign: 'center',
+    // Регистр от места, а не от словаря: «День» из таблицы рекордов
+    // иначе стоял бы строчным рядом с «СЕССИИ».
+    textTransform: 'uppercase',
   },
   // Цифры всюду на экране одной антиквой — и здесь, и в заголовке, и на
   // кольце таймера. Иерархию задаёт кегль: 44 против 25. Задавать её
@@ -952,13 +960,14 @@ const styles = StyleSheet.create({
   axisText: { fontSize: 10, fontWeight: '600' },
   caption: { fontSize: 13.5, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14 },
 
-  row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1 },
-  big: { fontSize: 25, fontFamily: SERIF_BOLD, letterSpacing: -0.4, marginBottom: 1 },
-  note: { fontSize: 12, fontWeight: '600', paddingBottom: 14 },
-  recRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
-  recKey: { fontSize: 12.5, fontWeight: '500' },
-  recVal: { fontSize: 13.5, fontFamily: SERIF_BOLD, fontVariant: ['tabular-nums'] },
+  streakPad: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 15 },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  big: { fontSize: 32, fontFamily: SERIF_BOLD, letterSpacing: -0.6 },
+  note: { fontSize: 13, fontWeight: '600' },
 
   empty: { fontSize: 15, lineHeight: 21, padding: 18 },
 });
