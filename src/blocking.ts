@@ -37,6 +37,13 @@ function pickEncouragement(): string {
 }
 
 /**
+ * Фраза текущей сессии. Щит переодевается не только при включении —
+ * время окончания меняется от старта, паузы и регулятора, — и без этой
+ * памяти каждая такая перерисовка тасовала бы текст заново.
+ */
+let phrase: string | null = null;
+
+/**
  * Альфа в UIColor формально необязательна, но без неё нативная сторона
  * считает цвет полностью прозрачным — фон щита просто не появлялся.
  * Поэтому задаём всегда, по умолчанию непрозрачно.
@@ -78,6 +85,8 @@ export function isBlocking(): boolean {
  * соцсеть. Раскладку Apple менять не даёт, но все слоты наши.
  */
 export function dressShield(endsAt: string) {
+  if (!phrase) phrase = pickEncouragement();
+
   updateShield(
     {
       // Тёмное размытие принудительно: щит рисуется в системной теме,
@@ -90,7 +99,7 @@ export function dressShield(endsAt: string) {
       titleColor: rgb('#FFFFFF'),
       // Сначала фраза, потом факт: время разблокировки должно остаться
       // последним, что человек читает перед тем, как закрыть щит.
-      subtitle: `${pickEncouragement()}\n\nПриложение откроется в ${endsAt}.`,
+      subtitle: `${phrase}\n\nПриложение откроется в ${endsAt}.`,
       subtitleColor: rgb('#B9C6E8'),
       iconSystemName: 'shield.lefthalf.filled',
       iconTint: rgb('#7FA3FF'),
@@ -114,10 +123,14 @@ export function dressShield(endsAt: string) {
 }
 
 export function startBlocking(endsAt: string) {
+  // Новая сессия — новая фраза. Повторять её изо дня в день бессмысленно:
+  // на третий раз человек перестаёт её читать.
+  phrase = pickEncouragement();
   dressShield(endsAt);
   blockSelection({ activitySelectionId: SELECTION_ID }, 'deep-focus-on');
 }
 
 export function stopBlocking() {
+  phrase = null;
   resetBlocks('deep-focus-off');
 }

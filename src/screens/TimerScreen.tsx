@@ -20,6 +20,7 @@ import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-a
 
 import {
   SELECTION_ID,
+  dressShield,
   ensureAuthorized,
   hasSelection,
   startBlocking,
@@ -66,6 +67,8 @@ export function TimerScreen({
    * Текущее время как состояние. Без него подпись диапазона считалась бы
    * один раз при рендере и застывала: пока сессия не идёт, перерисовывать
    * экран нечему, и время «оживало» только от перехода по вкладкам.
+   *
+   * Отсюда же считается и сам отсчёт — см. `left` ниже.
    */
   const [now, setNow] = useState(() => Date.now());
 
@@ -77,10 +80,32 @@ export function TimerScreen({
   const spec = PHASES[scheme][phase];
   /** Длительность текущей фазы — её можно менять регулятором на кольце */
   const [duration, setDuration] = useState(() => saved.focus);
-  const [left, setLeft] = useState(() => saved.focus);
+
+  /**
+   * Сессия хранится как момент окончания, а не как убывающий счётчик.
+   *
+   * Счётчик, который каждую секунду вычитает единицу, живёт ровно столько,
+   * сколько работает JavaScript. Стоит свернуть приложение — iOS усыпляет
+   * поток, интервал перестаёт срабатывать, и это время просто пропадает:
+   * таймер продолжает с того места, где заснул. Для Помодоро это бьёт
+   * в самый смысл, потому что телефон откладывают именно тогда.
+   *
+   * С дедлайном сон приложения ничего не значит: остаток каждый раз
+   * вычисляется от настенных часов. Заодно уходит накопленная погрешность
+   * интервала — за двадцать пять минут набегало несколько секунд.
+   */
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  /** Остаток на паузе и до старта: с этого места сессия продолжится */
+  const [held, setHeld] = useState(() => saved.focus);
+
+  /**
+   * Округляем вверх: «25:00» должно висеть всю первую секунду, а ноль
+   * наступать ровно в момент дедлайна, а не за полсекунды до него.
+   */
+  const left =
+    running && endsAt !== null ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : held;
 
   const progress = useSharedValue(0);
-  const tick = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Deep Focus не отдельная фаза и не тема, а наложение поверх текущей фазы.
   // В светлой теме он всё равно тёмный: смысл режима в том, что свет уходит
@@ -130,14 +155,15 @@ export function TimerScreen({
       if (currentCompleted) delete stash.current[phase];
       else stash.current[phase] = { left, duration };
 
-      const held = stash.current[next];
+      const kept = stash.current[next];
       // Прерванная фаза важнее сохранённой длительности: она уже началась.
-      const d = held?.duration ?? saved[next];
-      const l = held?.left ?? d;
+      const d = kept?.duration ?? saved[next];
+      const l = kept?.left ?? d;
 
       setPhase(next);
       setDuration(d);
-      setLeft(l);
+      setHeld(l);
+      setEndsAt(null);
       setRunning(false);
       setStartedAt(null);
       progress.value = withTiming(1 - l / d, { duration: 320 });
@@ -165,51 +191,43 @@ export function TimerScreen({
     [phase, done, goToPhase, deepFocus]
   );
 
-  useEffect(() => {
-    if (!running) {
-      if (tick.current) {
-        clearInterval(tick.current);
-        tick.current = null;
-      }
-      return;
-    }
-
-    tick.current = setInterval(() => {
-      setLeft((prev) => {
-        if (prev <= 1) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (tick.current) {
-        clearInterval(tick.current);
-        tick.current = null;
-      }
-    };
-  }, [running]);
-
   // Дуга догоняет отдельно от цифр: секундный скачок выглядел бы дёшево.
   useEffect(() => {
     progress.value = withTiming(1 - left / duration, { duration: 900 });
   }, [left, duration, progress]);
 
   /**
-   * Часы идут независимо от таймера. Во время сессии обновляемся раз в
-   * секунду вместе с отсчётом, вне её — раз в минуту, выровненно по её
-   * границе: подпись показывает минуты, чаще незачем будить экран.
+   * Единственные часы экрана. От них считается и отсчёт, и подпись
+   * диапазона — отдельному счётчику отсчитывать больше нечего.
+   *
+   * Во время сессии перерисовка привязана к дедлайну, а не к ровному
+   * интервалу: setInterval срабатывает с небольшим опозданием, за двадцать
+   * пять минут его набирается на секунду-другую, и цифры изредка
+   * перепрыгивали бы через значение. Каждый шаг вычисляется заново от
+   * остатка, поэтому опоздание не копится.
+   *
+   * Вне сессии хватает минуты, выровненной по её границе: подпись
+   * показывает минуты, чаще незачем будить экран.
    */
   useEffect(() => {
     const update = () => setNow(Date.now());
-    update();
 
-    if (running) {
-      const id = setInterval(update, 1000);
-      return () => clearInterval(id);
+    if (running && endsAt !== null) {
+      let id: ReturnType<typeof setTimeout>;
+      const step = () => {
+        const t = Date.now();
+        setNow(t);
+        const rest = endsAt - t;
+        if (rest <= 0) return;
+        // Восемь миллисекунд запаса, чтобы не проснуться за миг ДО границы
+        // и не показать одну и ту же секунду дважды подряд.
+        id = setTimeout(step, (rest % 1000 || 1000) + 8);
+      };
+      step();
+      return () => clearTimeout(id);
     }
+
+    update();
 
     let minute: ReturnType<typeof setInterval> | undefined;
     const toBoundary = 60000 - (Date.now() % 60000);
@@ -222,7 +240,22 @@ export function TimerScreen({
       clearTimeout(first);
       if (minute) clearInterval(minute);
     };
-  }, [running]);
+  }, [running, endsAt]);
+
+  /**
+   * Щит носит время окончания прямо в тексте, и это обещание обязано
+   * оставаться правдой: Deep Focus можно включить до старта, сессию —
+   * поставить на паузу, длительность — перекрутить регулятором.
+   *
+   * Зависимости намеренно от дедлайна и остатка, а не от `left`: тот
+   * меняется раз в секунду, и щит переодевался бы столько же раз.
+   */
+  useEffect(() => {
+    if (!deepFocus) return;
+    dressShield(
+      endsAt !== null ? formatTimeOfDay(new Date(endsAt)) : formatEndTime(held)
+    );
+  }, [deepFocus, endsAt, held]);
 
   // Из фона можно вернуться через час — время должно быть верным сразу,
   // не дожидаясь ближайшей границы минуты.
@@ -243,7 +276,7 @@ export function TimerScreen({
   const setMinutes = useCallback(
     (m: number) => {
       setDuration(m * 60);
-      setLeft(m * 60);
+      setHeld(m * 60);
       // Выбор запоминается для этой фазы: в следующий раз она начнётся
       // с той длительности, которую человек выставил, а не с заводской.
       persistDuration(phase, m * 60);
@@ -251,8 +284,14 @@ export function TimerScreen({
     [phase, persistDuration]
   );
 
+  /**
+   * Ноль ловим здесь, а не в тикающем счётчике: вернувшись из фона через
+   * час, приложение увидит просроченный дедлайн и завершит фазу сразу,
+   * не досчитывая пропущенное по секунде.
+   */
   useEffect(() => {
     if (left === 0 && running) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setRunning(false);
       advance(true);
     }
@@ -260,13 +299,27 @@ export function TimerScreen({
 
   const toggleRun = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setRunning((r) => {
-      // Момент старта фиксируем один раз за сессию: пауза не должна
-      // сдвигать левую границу диапазона.
-      if (!r) setStartedAt((prev) => prev ?? new Date());
-      return !r;
-    });
-  }, []);
+
+    if (running) {
+      // На паузе остаток нужно зафиксировать: дедлайн дальше не имеет
+      // смысла, часы-то продолжают идти.
+      setHeld(left);
+      setEndsAt(null);
+      setRunning(false);
+      return;
+    }
+
+    const t = Date.now();
+    // `now` двигаем вместе с дедлайном. Вне сессии он обновляется раз
+    // в минуту и может быть на полминуты позади — остаток на один кадр
+    // оказался бы больше выставленного.
+    setNow(t);
+    setEndsAt(t + left * 1000);
+    setRunning(true);
+    // Момент старта фиксируем один раз за сессию: пауза не должна
+    // сдвигать левую границу диапазона.
+    setStartedAt((prev) => prev ?? new Date(t));
+  }, [running, left]);
 
   const enableDeep = useCallback(() => {
     startBlocking(formatEndTime(left));
@@ -315,9 +368,10 @@ export function TimerScreen({
     }
     delete stash.current[phase];
     setRunning(false);
+    setEndsAt(null);
     setStartedAt(null);
     // Длительность остаётся выставленной: сбрасывается ход, а не настройка.
-    setLeft(duration);
+    setHeld(duration);
     // Дугу отматывает эффект, следящий за left — отдельно её здесь не трогаем.
   }, [deepFocus, phase, duration]);
 
