@@ -4,10 +4,10 @@ export const fr: Dict = {
   phaseFocus: 'Focus',
   phaseShort: 'Pause',
   phaseLong: 'Longue pause',
-  deepFocus: 'Deep Focus',
+  deepFocus: 'Immersion',
 
   tabTimer: 'Minuteur',
-  tabApps: 'Deep Focus',
+  tabApps: 'Immersion',
   tabStats: 'Bilan',
   tabMore: 'Plus',
 
@@ -21,7 +21,7 @@ export const fr: Dict = {
   a11yPause: 'Pause',
   a11yStart: 'Démarrer',
   a11yHoldHint: 'Maintenez pour confirmer',
-  a11yDeepFocus: 'Deep Focus',
+  a11yDeepFocus: 'Immersion',
 
   screenTimeTitle: 'Accès à Temps d’écran requis',
   screenTimeBody:
@@ -60,7 +60,7 @@ export const fr: Dict = {
   day1: 'Di', day2: 'Lu', day3: 'Ma', day4: 'Me', day5: 'Je', day6: 'Ve', day7: 'Sa',
   appsWhatToClose: 'Ce qu’on ferme',
   appsHow: 'Comment ça marche',
-  appsTitle: 'Deep Focus',
+  appsTitle: 'Immersion',
   statsTitle: 'Bilan',
   statsHint: 'Heures de focus, votre meilleur moment de la journée, série de jours d’affilée.',
 
@@ -73,7 +73,7 @@ export const fr: Dict = {
   themeDark: 'Sombre',
   languageAuto: 'Comme le système',
   hintDeepFocusDark:
-    'Deep Focus reste sombre quel que soit votre choix : dans ce mode, la lumière quitte la pièce.',
+    'L’immersion reste sombre quel que soit votre choix : dans ce mode, la lumière quitte la pièce.',
   presetClassic: 'Classique',
   presetDeep: 'Travail profond',
   presetBrief: 'Départ facile',
@@ -81,7 +81,7 @@ export const fr: Dict = {
   presetLocked: 'L’anneau est libre : tournez-le quand vous voulez, il règle la phase en cours. Garder votre propre trio fait partie de l’abonnement.',
   hintDurations: 'Réglées sur l’anneau et gardées d’un lancement à l’autre.',
 
-  shieldTitle: 'Vous êtes en Deep Focus',
+  shieldTitle: 'Vous êtes en immersion',
   shieldOpensAt: 'Cette app s’ouvrira à {time}.',
   shieldButton: 'Retour au travail',
 

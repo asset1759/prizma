@@ -4,10 +4,10 @@ export const ru: Dict = {
   phaseFocus: 'Фокус',
   phaseShort: 'Перерыв',
   phaseLong: 'Длинный перерыв',
-  deepFocus: 'Deep Focus',
+  deepFocus: 'Погружение',
 
   tabTimer: 'Таймер',
-  tabApps: 'Deep Focus',
+  tabApps: 'Погружение',
   tabStats: 'Итоги',
   tabMore: 'Ещё',
 
@@ -21,7 +21,7 @@ export const ru: Dict = {
   a11yPause: 'Пауза',
   a11yStart: 'Начать',
   a11yHoldHint: 'Удерживайте, чтобы подтвердить',
-  a11yDeepFocus: 'Deep Focus',
+  a11yDeepFocus: 'Погружение',
 
   screenTimeTitle: 'Нужен доступ к Экранному времени',
   screenTimeBody:
@@ -60,7 +60,7 @@ export const ru: Dict = {
   day1: 'Вс', day2: 'Пн', day3: 'Вт', day4: 'Ср', day5: 'Чт', day6: 'Пт', day7: 'Сб',
   appsWhatToClose: 'Что закрывать',
   appsHow: 'Как работает',
-  appsTitle: 'Deep Focus',
+  appsTitle: 'Погружение',
   statsTitle: 'Итоги',
   statsHint: 'Сколько часов в фокусе, лучшее время дня, серия дней подряд.',
 
@@ -73,7 +73,7 @@ export const ru: Dict = {
   themeDark: 'Тёмная',
   languageAuto: 'Как в системе',
   hintDeepFocusDark:
-    'Deep Focus остаётся тёмным при любом выборе: в этом режиме свет уходит из комнаты.',
+    'Погружение остаётся тёмным при любом выборе: в этом режиме свет уходит из комнаты.',
   presetClassic: 'Классический',
   presetDeep: 'Глубокая работа',
   presetBrief: 'Лёгкий старт',
@@ -81,7 +81,7 @@ export const ru: Dict = {
   presetLocked: 'Регулятор на кольце бесплатный — крути когда угодно, он меняет текущую фазу. Запомнить своё сочетание всех трёх — в подписке.',
   hintDurations: 'Меняются регулятором на кольце и запоминаются между запусками.',
 
-  shieldTitle: 'Ты в Deep Focus',
+  shieldTitle: 'Ты в погружении',
   shieldOpensAt: 'Приложение откроется в {time}.',
   shieldButton: 'Вернуться к работе',
 

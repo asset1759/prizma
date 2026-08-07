@@ -4,10 +4,10 @@ export const es: Dict = {
   phaseFocus: 'Enfoque',
   phaseShort: 'Descanso',
   phaseLong: 'Descanso largo',
-  deepFocus: 'Deep Focus',
+  deepFocus: 'Inmersión',
 
   tabTimer: 'Temporizador',
-  tabApps: 'Deep Focus',
+  tabApps: 'Inmersión',
   tabStats: 'Resumen',
   tabMore: 'Más',
 
@@ -21,7 +21,7 @@ export const es: Dict = {
   a11yPause: 'Pausa',
   a11yStart: 'Empezar',
   a11yHoldHint: 'Mantén pulsado para confirmar',
-  a11yDeepFocus: 'Deep Focus',
+  a11yDeepFocus: 'Inmersión',
 
   screenTimeTitle: 'Se necesita acceso a Tiempo de uso',
   screenTimeBody:
@@ -60,7 +60,7 @@ export const es: Dict = {
   day1: 'Do', day2: 'Lu', day3: 'Ma', day4: 'Mi', day5: 'Ju', day6: 'Vi', day7: 'Sá',
   appsWhatToClose: 'Qué cerrar',
   appsHow: 'Cómo funciona',
-  appsTitle: 'Deep Focus',
+  appsTitle: 'Inmersión',
   statsTitle: 'Resumen',
   statsHint: 'Horas de enfoque, tu mejor momento del día, racha de días seguidos.',
 
@@ -73,7 +73,7 @@ export const es: Dict = {
   themeDark: 'Oscuro',
   languageAuto: 'Como el sistema',
   hintDeepFocusDark:
-    'Deep Focus se mantiene oscuro elijas lo que elijas: en ese modo la luz se va de la habitación.',
+    'La inmersión se mantiene oscura elijas lo que elijas: en ese modo la luz se va de la habitación.',
   presetClassic: 'Clásico',
   presetDeep: 'Trabajo profundo',
   presetBrief: 'Empezar fácil',
@@ -81,7 +81,7 @@ export const es: Dict = {
   presetLocked: 'El anillo es gratis: gíralo cuando quieras, cambia la fase actual. Guardar tu propio conjunto de tres va con la suscripción.',
   hintDurations: 'Se ajustan en el anillo y se recuerdan entre sesiones.',
 
-  shieldTitle: 'Estás en Deep Focus',
+  shieldTitle: 'Estás en inmersión',
   shieldOpensAt: 'Esta app se abrirá a las {time}.',
   shieldButton: 'Volver al trabajo',
 

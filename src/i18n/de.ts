@@ -4,10 +4,10 @@ export const de: Dict = {
   phaseFocus: 'Fokus',
   phaseShort: 'Pause',
   phaseLong: 'Lange Pause',
-  deepFocus: 'Deep Focus',
+  deepFocus: 'Vertiefung',
 
   tabTimer: 'Timer',
-  tabApps: 'Deep Focus',
+  tabApps: 'Vertiefung',
   tabStats: 'Bilanz',
   tabMore: 'Mehr',
 
@@ -21,7 +21,7 @@ export const de: Dict = {
   a11yPause: 'Pause',
   a11yStart: 'Starten',
   a11yHoldHint: 'Zum Bestätigen halten',
-  a11yDeepFocus: 'Deep Focus',
+  a11yDeepFocus: 'Vertiefung',
 
   screenTimeTitle: 'Zugriff auf Bildschirmzeit nötig',
   screenTimeBody:
@@ -60,7 +60,7 @@ export const de: Dict = {
   day1: 'So', day2: 'Mo', day3: 'Di', day4: 'Mi', day5: 'Do', day6: 'Fr', day7: 'Sa',
   appsWhatToClose: 'Was geschlossen wird',
   appsHow: 'Wie es arbeitet',
-  appsTitle: 'Deep Focus',
+  appsTitle: 'Vertiefung',
   statsTitle: 'Bilanz',
   statsHint: 'Stunden im Fokus, deine beste Tageszeit, Serie aufeinanderfolgender Tage.',
 
@@ -73,7 +73,7 @@ export const de: Dict = {
   themeDark: 'Dunkel',
   languageAuto: 'Wie das System',
   hintDeepFocusDark:
-    'Deep Focus bleibt bei jeder Wahl dunkel: In diesem Modus verlässt das Licht den Raum.',
+    'Die Vertiefung bleibt bei jeder Wahl dunkel: In diesem Modus verlässt das Licht den Raum.',
   presetClassic: 'Klassisch',
   presetDeep: 'Tiefe Arbeit',
   presetBrief: 'Leichter Start',
@@ -81,7 +81,7 @@ export const de: Dict = {
   presetLocked: 'Der Ring ist frei — dreh ihn jederzeit, er ändert die laufende Phase. Das eigene Dreierset zu behalten gehört zum Abo.',
   hintDurations: 'Am Ring eingestellt und zwischen den Starts gemerkt.',
 
-  shieldTitle: 'Du bist im Deep Focus',
+  shieldTitle: 'Du bist in der Vertiefung',
   shieldOpensAt: 'Diese App öffnet um {time}.',
   shieldButton: 'Zurück an die Arbeit',
 
