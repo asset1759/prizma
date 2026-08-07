@@ -155,7 +155,15 @@ async function arm(
     activityName: name,
     callbackName: 'intervalDidStart',
     actions: [
-      { type: 'blockSelection', familyActivitySelectionId: listId(list) },
+      {
+        type: 'blockSelection',
+        familyActivitySelectionId: listId(list),
+        // Щит окна, а не сессии. Без имени расширение оставило бы
+        // висеть последнюю конфигурацию таймера, и человек читал бы
+        // время вчерашнего помидора, а на свежей установке — пустой
+        // системный щит без единого нашего слова.
+        shieldId: 'schedule',
+      },
       // Единственное уведомление, сообщающее о том, что произошло без
       // участия человека. Без него он узнаёт о закрытых приложениях,
       // только ткнувшись в закрытое и упершись в щит.

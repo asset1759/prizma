@@ -12,7 +12,12 @@ import {
 import { GlassPane } from '../components/GlassPane';
 import { DayRow, Divider, Hour, Toggle, rowStyles } from '../components/SettingsRows';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
-import { ensureAuthorized, listId, listSize } from '../blocking';
+import {
+  ensureAuthorized,
+  listId,
+  listSize,
+  prepareScheduleShield,
+} from '../blocking';
 import { applySchedule, scheduledCount } from '../schedule';
 import { useClock, useSettings, useT, useTn } from '../settings';
 import * as Notify from '../notify';
@@ -90,6 +95,9 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
    */
   useEffect(() => {
     let alive = true;
+    // Щит окна кладём заранее: применит его расширение в момент начала,
+    // когда JavaScript не выполняется и спросить перевод будет не у кого.
+    prepareScheduleShield(t, clock.hour(sch.to));
     applySchedule(sch, list, {
       title: t('notifSchedOnTitle'),
       body: t('notifSchedOnBody', { time: clock.hour(sch.to) }),

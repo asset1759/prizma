@@ -29,6 +29,7 @@ import {
   listSize,
   startBlocking,
   stopBlocking,
+  wearScheduleShield,
 } from '../blocking';
 
 import * as LiveActivity from '../../modules/live-activity';
@@ -691,7 +692,12 @@ export function TimerScreen({
    */
   const releaseShield = useRef(() => {});
   releaseShield.current = () => {
-    if (isWindowOpen(settings.schedule)) return;
+    if (isWindowOpen(settings.schedule)) {
+      // Щит остаётся, но перестаёт говорить о сессии: она кончилась, а
+      // окно идёт. Без этого он до конца окна обещал бы время помидора.
+      wearScheduleShield();
+      return;
+    }
     stopBlocking();
   };
 

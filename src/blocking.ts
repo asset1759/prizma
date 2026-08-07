@@ -8,6 +8,8 @@ import {
   requestAuthorization,
   resetBlocks,
   updateShield,
+  updateShieldWithId,
+  useShieldWithId,
 } from 'react-native-device-activity';
 
 import type { Key } from './i18n';
@@ -153,45 +155,96 @@ export function isBlocking(): boolean {
 }
 
 /**
+ * Щитов два, и они рассказывают о разном.
+ *
+ * `session` — идёт помидор, приложения закрыты до конца фазы.
+ * `schedule` — идёт окно расписания, приложения закрыты до конца окна.
+ *
+ * Пока конфигурация была одна на всё приложение, в окне расписания
+ * человек читал время вчерашней сессии, а на свежей установке — пустой
+ * системный щит без единого нашего слова: одевал его только таймер.
+ */
+export type ShieldKind = 'session' | 'schedule';
+
+/** Общая раскладка. Различаются только подписью — всё остальное одно и то же */
+function shieldLook(t: T, subtitle: string) {
+  return {
+    // Тёмное размытие принудительно: щит рисуется в системной теме,
+    // и на светлой наш белый текст оказывался на белом фоне.
+    backgroundBlurStyle: UIBlurEffectStyle.systemThickMaterialDark,
+    // Не до конца непрозрачно — сквозь фон угадывается размытое
+    // приложение, которое человек пытался открыть.
+    backgroundColor: rgb('#0B1024', 0.82),
+    title: t('shieldTitle'),
+    titleColor: rgb('#FFFFFF'),
+    subtitle,
+    subtitleColor: rgb('#B9C6E8'),
+    iconSystemName: 'shield.lefthalf.filled',
+    iconTint: rgb('#7FA3FF'),
+    primaryButtonLabel: t('shieldButton'),
+    primaryButtonLabelColor: rgb('#000000'),
+    primaryButtonBackgroundColor: rgb('#FFFFFF'),
+  };
+}
+
+/**
+ * Что делает единственная кнопка.
+ *
+ * Просто закрывает щит — человек возвращается на рабочий стол. Открыть
+ * отсюда Prizma нельзя: Apple не даёт расширению щита ни NSExtensionContext,
+ * ни UIApplication, а ShieldActionResponse умеет только .none, .close и
+ * .defer. Действие openApp из библиотеки молча не срабатывает и добавляет
+ * секундную паузу — поэтому убрано.
+ *
+ * Второй кнопки нет намеренно: со щита сессию не оборвать. Выход остаётся
+ * ровно один — открыть Prizma и завершить сессию там. Лишний шаг и есть
+ * та самая цена решения.
+ */
+const SHIELD_ACTIONS = { primary: { behavior: 'close' as const } };
+
+/**
+ * Готовит щит окна расписания и кладёт его под своим именем.
+ *
+ * Применит его не приложение, а расширение — в момент начала окна, когда
+ * JavaScript не выполняется. Поэтому конфигурация обязана лежать в общей
+ * группе заранее, а действие `blockSelection` только назовёт её по имени.
+ */
+export function prepareScheduleShield(t: T, opensAt: string) {
+  updateShieldWithId(
+    shieldLook(
+      t,
+      `${pickEncouragement(t)}\n\n${t('shieldOpensAt', { time: opensAt })}`
+    ),
+    SHIELD_ACTIONS,
+    'schedule'
+  );
+}
+
+/** Вернуть щиту вид окна расписания — например, когда кончился помидор внутри окна */
+export function wearScheduleShield() {
+  try {
+    useShieldWithId('schedule');
+  } catch {
+    // Конфигурации может не быть, если расписание ни разу не заводили.
+  }
+}
+
+/**
  * Одеваем щит — тот самый экран, который человек увидит, машинально открыв
  * соцсеть. Раскладку Apple менять не даёт, но все слоты наши.
  */
 export function dressShield(t: T, endsAt: string) {
   if (!phrase) phrase = pickEncouragement(t);
 
-  updateShield(
-    {
-      // Тёмное размытие принудительно: щит рисуется в системной теме,
-      // и на светлой наш белый текст оказывался на белом фоне.
-      backgroundBlurStyle: UIBlurEffectStyle.systemThickMaterialDark,
-      // Не до конца непрозрачно — сквозь фон угадывается размытое
-      // приложение, которое человек пытался открыть.
-      backgroundColor: rgb('#0B1024', 0.82),
-      title: t('shieldTitle'),
-      titleColor: rgb('#FFFFFF'),
-      // Сначала фраза, потом факт: время разблокировки должно остаться
-      // последним, что человек читает перед тем, как закрыть щит.
-      subtitle: `${phrase}\n\n${t('shieldOpensAt', { time: endsAt })}`,
-      subtitleColor: rgb('#B9C6E8'),
-      iconSystemName: 'shield.lefthalf.filled',
-      iconTint: rgb('#7FA3FF'),
-      primaryButtonLabel: t('shieldButton'),
-      primaryButtonLabelColor: rgb('#000000'),
-      primaryButtonBackgroundColor: rgb('#FFFFFF'),
-      // Второй кнопки нет намеренно: со щита сессию не оборвать.
-      // Выход остаётся ровно один — открыть Prizma и завершить сессию там.
-      // Лишний шаг и есть та самая цена решения.
-    },
-    {
-      // Просто закрываем щит — человек возвращается на рабочий стол.
-      //
-      // Открыть отсюда Prizma нельзя: Apple не даёт расширению щита ни
-      // NSExtensionContext, ни UIApplication, а ShieldActionResponse
-      // умеет только .none, .close и .defer. Действие openApp из библиотеки
-      // молча не срабатывает и добавляет секундную паузу — поэтому убрано.
-      primary: { behavior: 'close' },
-    }
+  const look = shieldLook(
+    t,
+    // Сначала фраза, потом факт: время разблокировки должно остаться
+    // последним, что человек читает перед тем, как закрыть щит.
+    `${phrase}\n\n${t('shieldOpensAt', { time: endsAt })}`
   );
+  // Под своим именем — чтобы расписание могло вернуть свой, не затирая наш.
+  updateShieldWithId(look, SHIELD_ACTIONS, 'session');
+  updateShield(look, SHIELD_ACTIONS);
 }
 
 export function startBlocking(t: T, key: ListKey, endsAt: string) {
