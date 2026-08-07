@@ -897,8 +897,22 @@ const styles = StyleSheet.create({
   },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { width: '33.333%', paddingHorizontal: 12, paddingVertical: 13 },
-  cellLabel: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5, minHeight: 24 },
+  // Содержимое по центру ячейки. Прижатое к левому краю, оно оставляло
+  // справа две трети пустоты, а числа разной длины делали шесть блоков
+  // непохожими друг на друга — сетка переставала читаться сеткой.
+  cell: {
+    width: '33.333%',
+    paddingHorizontal: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cellLabel: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    minHeight: 24,
+    textAlign: 'center',
+  },
   // Цифры всюду на экране одной антиквой — и здесь, и в заголовке, и на
   // кольце таймера. Иерархию задаёт кегль: 44 против 25. Задавать её
   // сменой начертания значило бы объявить эти числа другой породой,
@@ -911,7 +925,13 @@ const styles = StyleSheet.create({
   },
   // Единицы, наоборот, гротеском: это подписи, а не величины.
   cellValueUnit: { fontSize: 14, fontWeight: '600' },
-  cellFoot: { flexDirection: 'row', alignItems: 'baseline', gap: 6, height: 16 },
+  cellFoot: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 6,
+    height: 16,
+  },
   cellUnit: { fontSize: 12, fontWeight: '600' },
   cellNote: { fontSize: 12, fontWeight: '700' },
 
