@@ -7,7 +7,7 @@ export const ru: Dict = {
   deepFocus: 'Deep Focus',
 
   tabTimer: 'Таймер',
-  tabApps: 'Приложения',
+  tabApps: 'Deep Focus',
   tabStats: 'Итоги',
   tabMore: 'Ещё',
 
@@ -59,7 +59,8 @@ export const ru: Dict = {
   scheduleSameTime: 'Начало и конец должны различаться.',
   day1: 'Вс', day2: 'Пн', day3: 'Вт', day4: 'Ср', day5: 'Чт', day6: 'Пт', day7: 'Сб',
   appsWhatToClose: 'Что закрывать',
-  appsTitle: 'Приложения',
+  appsHow: 'Как работает',
+  appsTitle: 'Deep Focus',
   statsTitle: 'Итоги',
   statsHint: 'Сколько часов в фокусе, лучшее время дня, серия дней подряд.',
 

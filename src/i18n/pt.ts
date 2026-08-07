@@ -8,7 +8,7 @@ export const pt: Dict = {
   deepFocus: 'Deep Focus',
 
   tabTimer: 'Timer',
-  tabApps: 'Apps',
+  tabApps: 'Deep Focus',
   tabStats: 'Resumo',
   tabMore: 'Mais',
 
@@ -60,7 +60,8 @@ export const pt: Dict = {
   scheduleSameTime: 'Início e fim devem ser diferentes.',
   day1: 'Do', day2: 'Se', day3: 'Te', day4: 'Qua', day5: 'Qui', day6: 'Sex', day7: 'Sá',
   appsWhatToClose: 'O que fechar',
-  appsTitle: 'Apps',
+  appsHow: 'Como funciona',
+  appsTitle: 'Deep Focus',
   statsTitle: 'Resumo',
   statsHint: 'Horas em foco, seu melhor horário do dia, sequência de dias seguidos.',
 

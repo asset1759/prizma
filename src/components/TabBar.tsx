@@ -39,8 +39,10 @@ export const TABS: TabSpec[] = [
   {
     key: 'apps',
     label: 'tabApps' as const,
-    icon: 'square.grid.2x2',
-    iconActive: 'square.grid.2x2.fill',
+    // Тот же щит, что на кнопке таймера: нажал щит — открыл вкладку,
+    // где он настраивается.
+    icon: 'shield',
+    iconActive: 'shield.lefthalf.filled',
   },
   { key: 'stats', label: 'tabStats' as const, icon: 'chart.bar', iconActive: 'chart.bar.fill' },
   { key: 'more', label: 'tabMore' as const, icon: 'gearshape', iconActive: 'gearshape.fill' },

@@ -118,7 +118,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           </Pressable>
         </GlassPane>
 
-        <Text style={[styles.section, { color: ink.tertiary }]}>Deep Focus</Text>
+        <Text style={[styles.section, { color: ink.tertiary }]}>{t('appsHow')}</Text>
         <GlassPane style={styles.card} radius={20} scheme={scheme}>
           <Toggle
             label={t('strictTitle')}

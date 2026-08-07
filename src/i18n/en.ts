@@ -17,7 +17,7 @@ export const en = {
 
   // Вкладки
   tabTimer: 'Timer',
-  tabApps: 'Apps',
+  tabApps: 'Deep Focus',
   tabStats: 'Stats',
   tabMore: 'More',
 
@@ -74,7 +74,8 @@ export const en = {
   scheduleSameTime: 'Start and end must differ.',
   day1: 'Su', day2: 'Mo', day3: 'Tu', day4: 'We', day5: 'Th', day6: 'Fr', day7: 'Sa',
   appsWhatToClose: 'What to close',
-  appsTitle: 'Apps',
+  appsHow: 'How it works',
+  appsTitle: 'Deep Focus',
   statsTitle: 'Stats',
   statsHint: 'Hours in focus, your best time of day, streak of days in a row.',
 
