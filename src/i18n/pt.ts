@@ -38,9 +38,9 @@ export const pt: Dict = {
   statsHint: 'Horas em foco, seu melhor horário do dia, sequência de dias seguidos.',
 
   moreTitle: 'Mais',
-  sectionAppearance: 'APARÊNCIA',
-  sectionDurations: 'DURAÇÕES',
-  sectionLanguage: 'IDIOMA',
+  sectionAppearance: 'Aparência',
+  sectionDurations: 'Durações',
+  sectionLanguage: 'Idioma',
   themeAuto: 'Igual ao sistema',
   themeLight: 'Claro',
   themeDark: 'Escuro',

@@ -37,9 +37,9 @@ export const ru: Dict = {
   statsHint: 'Сколько часов в фокусе, лучшее время дня, серия дней подряд.',
 
   moreTitle: 'Ещё',
-  sectionAppearance: 'ОФОРМЛЕНИЕ',
-  sectionDurations: 'ДЛИТЕЛЬНОСТИ',
-  sectionLanguage: 'ЯЗЫК',
+  sectionAppearance: 'Оформление',
+  sectionDurations: 'Длительности',
+  sectionLanguage: 'Язык',
   themeAuto: 'Как в системе',
   themeLight: 'Светлая',
   themeDark: 'Тёмная',

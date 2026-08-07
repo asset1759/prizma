@@ -37,9 +37,9 @@ export const de: Dict = {
   statsHint: 'Stunden im Fokus, deine beste Tageszeit, Serie aufeinanderfolgender Tage.',
 
   moreTitle: 'Mehr',
-  sectionAppearance: 'DARSTELLUNG',
-  sectionDurations: 'DAUER',
-  sectionLanguage: 'SPRACHE',
+  sectionAppearance: 'Darstellung',
+  sectionDurations: 'Dauer',
+  sectionLanguage: 'Sprache',
   themeAuto: 'Wie das System',
   themeLight: 'Hell',
   themeDark: 'Dunkel',

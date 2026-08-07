@@ -37,9 +37,9 @@ export const fr: Dict = {
   statsHint: 'Heures de focus, votre meilleur moment de la journée, série de jours d’affilée.',
 
   moreTitle: 'Plus',
-  sectionAppearance: 'APPARENCE',
-  sectionDurations: 'DURÉES',
-  sectionLanguage: 'LANGUE',
+  sectionAppearance: 'Apparence',
+  sectionDurations: 'Durées',
+  sectionLanguage: 'Langue',
   themeAuto: 'Comme le système',
   themeLight: 'Clair',
   themeDark: 'Sombre',

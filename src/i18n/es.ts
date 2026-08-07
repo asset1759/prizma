@@ -37,9 +37,9 @@ export const es: Dict = {
   statsHint: 'Horas de enfoque, tu mejor momento del día, racha de días seguidos.',
 
   moreTitle: 'Más',
-  sectionAppearance: 'APARIENCIA',
-  sectionDurations: 'DURACIONES',
-  sectionLanguage: 'IDIOMA',
+  sectionAppearance: 'Apariencia',
+  sectionDurations: 'Duraciones',
+  sectionLanguage: 'Idioma',
   themeAuto: 'Como el sistema',
   themeLight: 'Claro',
   themeDark: 'Oscuro',

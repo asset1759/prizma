@@ -50,9 +50,9 @@ export const en = {
 
   // Экран «Ещё»
   moreTitle: 'More',
-  sectionAppearance: 'APPEARANCE',
-  sectionDurations: 'DURATIONS',
-  sectionLanguage: 'LANGUAGE',
+  sectionAppearance: 'Appearance',
+  sectionDurations: 'Durations',
+  sectionLanguage: 'Language',
   themeAuto: 'Match system',
   themeLight: 'Light',
   themeDark: 'Dark',
