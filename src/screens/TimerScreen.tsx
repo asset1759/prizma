@@ -569,6 +569,15 @@ export function TimerScreen({
     setStartedAt((prev) => prev ?? new Date(t));
   }, [running, left, duration, progress]);
 
+  /**
+   * Отметил ли человек хоть что-то в системном выборе.
+   *
+   * Дублирует проверку хранилища намеренно: включение Deep Focus не должно
+   * зависеть от того, ответит ли чтение. Событие приходит прямо в момент
+   * отметки и врать не может.
+   */
+  const picked = useRef(false);
+
   const enableDeep = useCallback(() => {
     startBlocking(t, settings.appList, formatEndTime(left));
     setDeepFocus(true);
@@ -594,6 +603,7 @@ export function TimerScreen({
 
     // Первый раз — сначала выбор приложений, блокировать пока нечего.
     if (!hasSelection(settings.appList)) {
+      picked.current = false;
       setPickerOpen(true);
       return;
     }
@@ -899,9 +909,15 @@ export function TimerScreen({
             familyActivitySelectionId={listId(settings.appList)}
             headerText={t('pickerHeader')}
             footerText={t('pickerFooter')}
+            includeEntireCategory
+            onSelectionChange={(e) => {
+              const m = e.nativeEvent;
+              picked.current =
+                m.applicationCount + m.categoryCount + m.webDomainCount > 0;
+            }}
             onDismissRequest={() => {
               setPickerOpen(false);
-              if (hasSelection(settings.appList)) enableDeep();
+              if (picked.current || hasSelection(settings.appList)) enableDeep();
             }}
           />
         ) : null}

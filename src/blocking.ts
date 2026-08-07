@@ -3,6 +3,7 @@ import {
   activitySelectionMetadata,
   blockSelection,
   getFamilyActivitySelectionId,
+  setFamilyActivitySelectionId,
   isShieldActive,
   requestAuthorization,
   resetBlocks,
@@ -38,12 +39,46 @@ export function listId(key: ListKey): string {
   return `deepFocus.${key}`;
 }
 
-/** Сколько всего отмечено в списке. `null` — список ещё не заполняли */
+/**
+ * Перенос выбора из версии, где список был один.
+ *
+ * До появления именованных списков набор хранился под именем `deepFocus`.
+ * После переименования он остался бы лежать невидимым, а человек увидел
+ * бы пустой список и заново отмечал то, что уже отмечал руками.
+ *
+ * Выполняется один раз при запуске и молчит, если переносить нечего.
+ */
+export function migrateLegacySelection() {
+  const legacy = getFamilyActivitySelectionId('deepFocus');
+  if (!legacy) return;
+  // Уже перенесено или человек успел набрать свой — не затираем.
+  if (getFamilyActivitySelectionId(listId('social'))) return;
+  setFamilyActivitySelectionId({
+    id: listId('social'),
+    familyActivitySelection: legacy,
+  });
+}
+
+/**
+ * Заполнен ли список.
+ *
+ * Намеренно самая простая проверка — есть ли сохранённый выбор. Разбор
+ * метаданных сюда тянуть нельзя: он нужен только чтобы показать цифру,
+ * а если вдруг не ответит, Deep Focus просто перестанет включаться.
+ * Так и вышло однажды, и молча.
+ */
+export function hasSelection(key: ListKey): boolean {
+  return Boolean(getFamilyActivitySelectionId(listId(key)));
+}
+
+/**
+ * Сколько отмечено — только для показа. `null` значит «нечего показать»,
+ * а не «списка нет»: об этом спрашивают у `hasSelection`.
+ */
 export function listSize(key: ListKey): { apps: number; categories: number } | null {
   const raw = getFamilyActivitySelectionId(listId(key));
   if (!raw) return null;
-  // Метаданные принимают сам токен выбора, а не строку-идентификатор.
-  const m = activitySelectionMetadata({ activitySelectionToken: raw });
+  const m = activitySelectionMetadata({ activitySelectionId: listId(key) });
   if (!m) return null;
   const total = m.applicationCount + m.categoryCount + m.webDomainCount;
   return total > 0 ? { apps: m.applicationCount, categories: m.categoryCount } : null;
@@ -97,10 +132,6 @@ export async function ensureAuthorized(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-export function hasSelection(key: ListKey): boolean {
-  return listSize(key) !== null;
 }
 
 export function isBlocking(): boolean {

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AmbientCanvas } from './components/AmbientCanvas';
 import { TabBar, type TabKey } from './components/TabBar';
+import { migrateLegacySelection } from './blocking';
 import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
 import { StubScreen } from './screens/StubScreen';
@@ -21,6 +22,11 @@ import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
 export function RootScreen() {
   const t = useT();
   const systemScheme = useResolvedScheme();
+
+  // Один раз за запуск: подхватить набор, сохранённый до появления списков.
+  useEffect(() => {
+    migrateLegacySelection();
+  }, []);
   const [tab, setTab] = useState<TabKey>('timer');
 
   /**
