@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -195,10 +196,24 @@ export function TimerScreen({
     [phase, done, goToPhase, deepFocus]
   );
 
+  /**
+   * Пока идёт возврат к регулятору, кольцо остаётся в режиме прогресса.
+   *
+   * Регулятор рисуется без анимации — он должен ходить за пальцем, а не
+   * догонять его. Поэтому при сбросе мы не отдаём кольцо ему сразу,
+   * а доводим дугу прогрессом до той же отметки и только потом
+   * переключаем: в момент переключения обе дуги совпадают, и подмены
+   * не видно.
+   */
+  const [settling, setSettling] = useState(false);
+
   // Дуга догоняет отдельно от цифр: секундный скачок выглядел бы дёшево.
   useEffect(() => {
+    // Во время возврата дугой распоряжается сброс — иначе этот эффект
+    // тянул бы её к нулю, а он туда же и ведёт.
+    if (settling) return;
     progress.value = withTiming(1 - left / duration, { duration: 900 });
-  }, [left, duration, progress]);
+  }, [left, duration, progress, settling]);
 
   /**
    * Единственные часы экрана. От них считается и отсчёт, и подпись
@@ -348,7 +363,7 @@ export function TimerScreen({
    * не годится: после возврата с перерыва он пуст, и случайное касание
    * стёрло бы восстановленный остаток.
    */
-  const editable = !running && left === duration;
+  const editable = !running && left === duration && !settling;
 
   const setMinutes = useCallback(
     (m: number) => {
@@ -474,8 +489,23 @@ export function TimerScreen({
     setStartedAt(null);
     // Длительность остаётся выставленной: сбрасывается ход, а не настройка.
     setHeld(duration);
-    // Дугу отматывает эффект, следящий за left — отдельно её здесь не трогаем.
-  }, [deepFocus, phase, duration]);
+
+    /**
+     * Дуга дорастает до отметки регулятора — зеркально старту, где она
+     * оттуда же отматывалась. Без этого кольцо перескакивало одним
+     * кадром: прогресс сессии и положение регулятора меряют разное,
+     * и переход между ними надо проговорить движением.
+     */
+    setSettling(true);
+    progress.value = withTiming(
+      duration / (MAX_MIN * 60),
+      { duration: 560, easing: Easing.inOut(Easing.cubic) },
+      (finished) => {
+        // Кольцо отдаём регулятору только когда дуга уже на месте.
+        if (finished) runOnJS(setSettling)(false);
+      }
+    );
+  }, [deepFocus, phase, duration, progress]);
 
   /**
    * Подсказка про удержание. Живёт здесь, а не в кнопке: ей нужно место
