@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Platform,
   Pressable,
   StyleSheet,
@@ -56,6 +57,12 @@ export function TimerScreen({
   const [pickerOpen, setPickerOpen] = useState(false);
   /** Момент старта сессии — нужен только для подписи «14:00 → 14:25» */
   const [startedAt, setStartedAt] = useState<Date | null>(null);
+  /**
+   * Текущее время как состояние. Без него подпись диапазона считалась бы
+   * один раз при рендере и застывала: пока сессия не идёт, перерисовывать
+   * экран нечему, и время «оживало» только от перехода по вкладкам.
+   */
+  const [now, setNow] = useState(() => Date.now());
 
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
@@ -181,6 +188,42 @@ export function TimerScreen({
   }, [left, duration, progress]);
 
   /**
+   * Часы идут независимо от таймера. Во время сессии обновляемся раз в
+   * секунду вместе с отсчётом, вне её — раз в минуту, выровненно по её
+   * границе: подпись показывает минуты, чаще незачем будить экран.
+   */
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+
+    if (running) {
+      const id = setInterval(update, 1000);
+      return () => clearInterval(id);
+    }
+
+    let minute: ReturnType<typeof setInterval> | undefined;
+    const toBoundary = 60000 - (Date.now() % 60000);
+    const first = setTimeout(() => {
+      update();
+      minute = setInterval(update, 60000);
+    }, toBoundary);
+
+    return () => {
+      clearTimeout(first);
+      if (minute) clearInterval(minute);
+    };
+  }, [running]);
+
+  // Из фона можно вернуться через час — время должно быть верным сразу,
+  // не дожидаясь ближайшей границы минуты.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') setNow(Date.now());
+    });
+    return () => sub.remove();
+  }, []);
+
+  /**
    * Регулятор доступен, пока не потрачено ни секунды. Привязка к startedAt
    * не годится: после возврата с перерыва он пуст, и случайное касание
    * стёрло бы восстановленный остаток.
@@ -262,7 +305,9 @@ export function TimerScreen({
 
   // «Когда я освобожусь» — вопрос практичнее, чем «сколько осталось»:
   // остаток и так виден по отсчёту.
-  const rangeText = `${formatTimeOfDay(startedAt ?? new Date())} → ${formatEndTime(left)}`;
+  const rangeText = `${formatTimeOfDay(startedAt ?? new Date(now))} → ${formatTimeOfDay(
+    new Date(now + left * 1000)
+  )}`;
 
   return (
     <View style={styles.root}>
