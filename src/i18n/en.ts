@@ -56,11 +56,13 @@ export const en = {
   // Оставлены для онбординга — там их место, и переписывать на шести
   // языках заново было бы расточительством.
   strictTitle: 'Strict mode',
+  strictSub: 'A started session cannot be cut short',
   strictHint: 'A started session cannot be cut short: Deep Focus stays on and the timer cannot be reset until the phase runs out. That is the whole point — you agree with yourself in advance, while leaving is not yet tempting.',
   strictHonest: 'It is friction, not a lock: the app can always be deleted. Nothing on iOS holds tighter — the friction is enough for the urge to pass.',
   strictRunning: 'A strict session is running. Wait for the phase to finish.',
   scheduleTitle: 'Schedule',
-  scheduleOn: 'Turn on by itself',
+  scheduleOn: 'Schedule',
+  scheduleSub: 'Turns on by itself on the chosen days',
   scheduleHint: 'Deep Focus starts and ends on its own, even with the app closed. Minutes are not asked for on purpose: a focus window that begins at 9:07 is a window nobody keeps.',
   scheduleDays: 'Days',
   scheduleFrom: 'From',

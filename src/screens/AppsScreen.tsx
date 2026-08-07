@@ -113,6 +113,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
         <GlassPane style={styles.card} radius={20} scheme={scheme}>
           <Toggle
             label={t('strictTitle')}
+            sub={t('strictSub')}
             on={settings.strict}
             onPress={() => update({ strict: !settings.strict })}
             ink={ink}
@@ -123,6 +124,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
 
           <Toggle
             label={t('scheduleOn')}
+            sub={t('scheduleSub')}
             on={sch.on}
             onPress={() => update({ schedule: { ...sch, on: !sch.on } })}
             ink={ink}
@@ -217,14 +219,25 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   );
 }
 
+/**
+ * Переключатель с одной строкой пояснения под подписью.
+ *
+ * Именно так это устроено у всех, кто делает то же самое: TIDE, Brick,
+ * stoic. Название режима само по себе ничего не сообщает — «строгий»
+ * может значить что угодно, — а вынести объяснение отдельным абзацем
+ * вниз экрана значит превратить настройки в инструкцию. Одна строка
+ * на месте решает и то и другое.
+ */
 function Toggle({
   label,
+  sub,
   on,
   onPress,
   ink,
   accent,
 }: {
   label: string;
+  sub: string;
   on: boolean;
   onPress: () => void;
   ink: Ink;
@@ -240,7 +253,10 @@ function Toggle({
       accessibilityRole="switch"
       accessibilityState={{ checked: on }}
     >
-      <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
+      <View style={styles.rowLeft}>
+        <Text style={[styles.rowLabel, { color: ink.primary }]}>{label}</Text>
+        <Text style={[styles.rowSub, { color: ink.tertiary }]}>{sub}</Text>
+      </View>
       {/* Тумблер свой: системный Switch — единственный элемент,
           который не подчиняется нашей палитре. */}
       <View style={[styles.track, { backgroundColor: on ? accent : ink.track }]}>
@@ -323,7 +339,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
   },
+  rowLeft: { flex: 1, gap: 2, paddingRight: 14 },
   rowLabel: { fontSize: 15.5, fontWeight: '500' },
+  rowSub: { fontSize: 12.5, lineHeight: 16 },
   pressed: { opacity: 0.6 },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
 
