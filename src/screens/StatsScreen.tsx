@@ -150,12 +150,55 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
 
   /* ─── форматирование ─── */
 
-  const dur = (sec: number) => {
+  /**
+   * Длительность парами «число — единица».
+   *
+   * Единицы всюду набираются мельче цифр: набранные вровень, они спорят
+   * с числом за внимание, а сказать им нечего — «мин» одинаково во всех
+   * ячейках, а число в каждой своё.
+   *
+   * «2 ч 0 мин» не возвращается никогда: это ноль на экране.
+   */
+  const durParts = (sec: number): { n: string; u: string }[] => {
     const m = Math.round(sec / 60);
     const h = Math.floor(m / 60);
-    // «2 ч 0 мин» — это ноль на экране, а нулей здесь не бывает.
-    if (h > 0) return m % 60 === 0 ? `${h} ${t('unitH')}` : `${h} ${t('unitH')} ${m % 60} ${t('unitMin')}`;
-    return `${m} ${t('unitMin')}`;
+    if (h === 0) return [{ n: String(m), u: t('unitMin') }];
+    if (m % 60 === 0) return [{ n: String(h), u: t('unitH') }];
+    return [
+      { n: String(h), u: t('unitH') },
+      { n: String(m % 60), u: t('unitMin') },
+    ];
+  };
+
+  /** Одной строкой — для таблицы рекордов и подписи под графиком */
+  const dur = (sec: number) =>
+    durParts(sec)
+      .map((p) => `${p.n} ${p.u}`)
+      .join(' ');
+
+  /**
+   * Для ячейки: последняя единица съезжает на отдельную строку под число.
+   * Сверху вниз читается по-прежнему целиком — «1 ч 22» и ниже «мин».
+   */
+  const durCell = (sec: number) => {
+    const p = durParts(sec);
+    const last = p[p.length - 1];
+    return {
+      value: (
+        <>
+          {p.slice(0, -1).map((x) => (
+            <Text key={x.u}>
+              {x.n}
+              <Text style={[styles.cellValueUnit, { color: ink.tertiary }]}>
+                {` ${x.u} `}
+              </Text>
+            </Text>
+          ))}
+          {last.n}
+        </>
+      ),
+      unit: last.u,
+    };
   };
 
   const mon = (i: number) => t(`mon${i + 1}` as Key);
@@ -314,7 +357,17 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
                 </Text>
 
                 {now.count > 0 ? (
-                  <Text style={[styles.hero, { color: ink.primary }]}>{dur(now.sec)}</Text>
+                  <Text style={[styles.hero, { color: ink.primary }]}>
+                    {durParts(now.sec).map((p, i) => (
+                      <Text key={p.u}>
+                        {i > 0 ? ' ' : ''}
+                        {p.n}
+                        <Text style={[styles.heroUnit, { color: ink.tertiary }]}>
+                          {` ${p.u}`}
+                        </Text>
+                      </Text>
+                    ))}
+                  </Text>
                 ) : (
                   <Text style={[styles.heroDash, { color: ink.tertiary }]}>—</Text>
                 )}
@@ -391,44 +444,35 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
                       ),
                       up: now.count > prev.count,
                     },
-                    {
-                      label: t('mAvg'),
-                      value: dur(now.sec / now.count),
-                      note: null,
-                    },
+                    { label: t('mAvg'), ...durCell(now.sec / now.count) },
                     {
                       label: t('mPerDay'),
-                      value: dur(now.sec / Math.max(1, now.days)),
-                      note: null,
+                      ...durCell(now.sec / Math.max(1, now.days)),
                     },
                     {
                       label: t('mDays'),
+                      value: String(now.days),
                       // «из скольких» имеет смысл, пока знаменатель — дни.
                       // В году столбики месячные, и «56 из 12» — бессмыслица.
-                      value:
+                      unit:
                         period === 'year'
-                          ? String(now.days)
-                          : t('statsOfN', { n: now.days, m: bars.length }),
-                      note: null,
+                          ? undefined
+                          : t('statsOutOf', { m: bars.length }),
                     },
                     now.deepCount >= MIN_DEEP_SESSIONS
                       ? {
                           label: t('mDeep'),
-                          value: `${Math.round((now.deepSec / now.sec) * 100)}%`,
-                          note: null,
+                          value: String(Math.round((now.deepSec / now.sec) * 100)),
+                          unit: '%',
                         }
                       : null,
                     now.doneRate !== null
                       ? {
                           label: t('mDone'),
-                          value: `${Math.round(now.doneRate * 100)}%`,
-                          note: null,
+                          value: String(Math.round(now.doneRate * 100)),
+                          unit: '%',
                         }
-                      : {
-                          label: t('mLongest'),
-                          value: dur(now.longest),
-                          note: null,
-                        },
+                      : { label: t('mLongest'), ...durCell(now.longest) },
                   ]}
                   ink={ink}
                   accent={accent}
@@ -678,7 +722,14 @@ function Bar({
   );
 }
 
-type Cell = { label: string; value: string; note?: string | null; up?: boolean } | null;
+type Cell = {
+  label: string;
+  /** Цифры; внутренняя единица, если она есть, набирается мельче */
+  value: React.ReactNode;
+  unit?: string;
+  note?: string | null;
+  up?: boolean;
+} | null;
 
 /**
  * Сетка показателей.
@@ -717,23 +768,32 @@ function Grid({
           <Text numberOfLines={2} style={[styles.cellLabel, { color: ink.tertiary }]}>
             {c.label}
           </Text>
-          {/* Ужимаем, но не переносим: перенос двигает третью строку и
-              сетка перестаёт читаться сеткой. «1 ч 14 мин» по-русски и
-              «DURCHSCHNITT» по-немецки — оба длиннее трети ширины. */}
+          {/* Кегль фиксирован, а не подгоняется под длину: подгонка делала
+              «17» крупным, а «1 ч 22 мин» мелким, и сетка читалась рваной.
+              Единицы уехали из этой строки, и самое длинное, что тут может
+              оказаться, — «23 ч 59», а оно помещается с запасом. */}
           <Text
             numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
             style={[styles.cellValue, { color: ink.primary }]}
           >
             {c.value}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={[styles.cellNote, { color: c.up ? accent : ink.tertiary }]}
-          >
-            {c.note ?? ' '}
-          </Text>
+          {/* Единица и дельта делят строку: у одной ячейки есть только
+              единица, у другой только дельта, и обе строки должны стоять
+              на одном уровне — иначе сетка едет. */}
+          <View style={styles.cellFoot}>
+            <Text numberOfLines={1} style={[styles.cellUnit, { color: ink.tertiary }]}>
+              {c.unit ?? ''}
+            </Text>
+            {c.note ? (
+              <Text
+                numberOfLines={1}
+                style={[styles.cellNote, { color: c.up ? accent : ink.secondary }]}
+              >
+                {c.note}
+              </Text>
+            ) : null}
+          </View>
         </View>
       ))}
     </View>
@@ -790,6 +850,9 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     fontVariant: ['tabular-nums'],
   },
+  // Единица в антикве набирается вполовину: «МИН» тем же кеглем весит
+  // столько же, сколько само число, а сообщает вчетверо меньше.
+  heroUnit: { fontSize: 23, fontFamily: SERIF_BOLD, letterSpacing: 0 },
   heroDash: { fontSize: 44, lineHeight: 50, fontFamily: SERIF_BOLD },
   compareRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, height: 18 },
   compare: { fontSize: 13, fontWeight: '600' },
@@ -836,8 +899,11 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: '33.333%', paddingHorizontal: 12, paddingVertical: 13 },
   cellLabel: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5, minHeight: 24 },
-  cellValue: { fontSize: 21, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  cellNote: { fontSize: 11.5, fontWeight: '600', height: 15 },
+  cellValue: { fontSize: 25, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  cellValueUnit: { fontSize: 14, fontWeight: '600' },
+  cellFoot: { flexDirection: 'row', alignItems: 'baseline', gap: 6, height: 16 },
+  cellUnit: { fontSize: 12, fontWeight: '600' },
+  cellNote: { fontSize: 12, fontWeight: '700' },
 
   ticks: {
     flexDirection: 'row',

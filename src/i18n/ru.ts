@@ -78,6 +78,7 @@ export const ru: Dict = {
   mLongest: 'ДЛИННАЯ',
   mDone: 'ДОВЕДЕНО',
   statsOfN: '{n} из {m}',
+  statsOutOf: 'из {m}',
   statsRhythm: 'РИТМ ДНЯ',
   statsRhythmWindow: 'Чаще всего с {a} до {b}',
   statsStreakBest: 'рекорд {n}',

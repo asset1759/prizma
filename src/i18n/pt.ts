@@ -79,6 +79,7 @@ export const pt: Dict = {
   mLongest: 'MAIS LONGA',
   mDone: 'CONCLUÍDAS',
   statsOfN: '{n} de {m}',
+  statsOutOf: 'de {m}',
   statsRhythm: 'SEU DIA',
   statsRhythmWindow: 'Quase sempre das {a} às {b}',
   statsStreakBest: 'recorde {n}',

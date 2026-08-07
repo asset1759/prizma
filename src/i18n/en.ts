@@ -93,6 +93,7 @@ export const en = {
   mLongest: 'LONGEST',
   mDone: 'COMPLETED',
   statsOfN: '{n} of {m}',
+  statsOutOf: 'of {m}',
   statsRhythm: 'YOUR DAY',
   statsRhythmWindow: 'Most often {a} – {b}',
   statsStreakBest: 'best {n}',

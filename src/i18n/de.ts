@@ -78,6 +78,7 @@ export const de: Dict = {
   mLongest: 'LÄNGSTE',
   mDone: 'ABGESCHLOSSEN',
   statsOfN: '{n} von {m}',
+  statsOutOf: 'von {m}',
   statsRhythm: 'DEIN TAG',
   statsRhythmWindow: 'Meist von {a} bis {b}',
   statsStreakBest: 'Rekord {n}',
