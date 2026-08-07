@@ -11,6 +11,8 @@
  * сессией и глубоким фокусом.
  */
 
+import { uses12Hour } from './i18n';
+
 export type Phase = 'focus' | 'short' | 'long';
 export type Scheme = 'light' | 'dark';
 
@@ -207,11 +209,28 @@ export function formatClock(totalSeconds: number): string {
   return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-/** Часы и минуты вида «14:25» */
+/**
+ * Часы и минуты вида «14:25» — или «2:25 PM» там, где так пишут.
+ *
+ * Двенадцатичасовая запись определяется регионом телефона, а не языком
+ * приложения: человек в Нью-Йорке, переключивший интерфейс на испанский,
+ * всё равно читает часы по-американски.
+ */
 export function formatTimeOfDay(d: Date): string {
-  const h = d.getHours();
   const m = d.getMinutes();
-  return `${h < 10 ? '0' : ''}${h}:${m < 10 ? '0' : ''}${m}`;
+  const mm = `${m < 10 ? '0' : ''}${m}`;
+  if (!uses12Hour()) {
+    const h = d.getHours();
+    return `${h < 10 ? '0' : ''}${h}:${mm}`;
+  }
+  const h = d.getHours();
+  return `${h % 12 === 0 ? 12 : h % 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+/** Ровный час вида «14:00» или «2 PM» — для подписей осей и окон */
+export function formatHour(h: number): string {
+  if (!uses12Hour()) return `${h < 10 ? '0' : ''}${h}:00`;
+  return `${h % 12 === 0 ? 12 : h % 12} ${h < 12 || h === 24 ? 'AM' : 'PM'}`;
 }
 
 /** Время окончания в виде «14:25» — для чипа и щита */

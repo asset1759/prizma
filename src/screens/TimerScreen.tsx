@@ -497,9 +497,19 @@ export function TimerScreen({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setRunning(false);
 
-    // В историю попадает только досчитанный фокус: перерыв не достижение,
-    // а прерванная сессия сюда и не доходит — этот эффект ловит ноль.
-    if (phase === 'focus') recordSession(duration, deepFocus);
+    // Перерыв в историю не идёт — он не достижение. Фокус идёт весь,
+    // но с отметкой, чем кончился: досчитанные и прерванные показываются
+    // по-разному, а вот считаться должны оба, иначе доля доведённых до
+    // конца невыводима ни из чего.
+    if (phase === 'focus') {
+      recordSession({
+        sec: duration,
+        deep: deepFocus,
+        done: true,
+        startedAt: startedAt?.getTime(),
+        planned: duration,
+      });
+    }
     /**
      * Держим ноль на виду. Без этого остаток тут же возвращался к `held`,
      * то есть к полной длительности, кольцо признавало себя регулятором
@@ -681,6 +691,25 @@ export function TimerScreen({
       stopBlocking();
       setDeepFocus(false);
     }
+
+    /**
+     * Прерванная сессия тоже пишется. Не ради того, чтобы её показать —
+     * в итогах и столбиках её не будет, — а ради знаменателя: без
+     * прерванных доля доведённых до конца всегда ровно сто процентов,
+     * и единственная метрика приложения, умеющая ухудшаться, молчит.
+     *
+     * Короче минуты не пишется ничего: отсекается в `record`.
+     */
+    if (phase === 'focus') {
+      recordSession({
+        sec: duration - left,
+        deep: deepFocus,
+        done: false,
+        startedAt: startedAt?.getTime(),
+        planned: duration,
+      });
+    }
+
     delete stash.current[phase];
     setRunning(false);
     setEndsAt(null);
@@ -703,7 +732,7 @@ export function TimerScreen({
         if (finished) runOnJS(setSettling)(false);
       }
     );
-  }, [deepFocus, phase, duration, progress, lockedByStrict, refuseStrict]);
+  }, [deepFocus, phase, duration, left, startedAt, progress, lockedByStrict, refuseStrict]);
 
   /**
    * Подсказка про удержание. Живёт здесь, а не в кнопке: ей нужно место

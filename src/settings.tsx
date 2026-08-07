@@ -196,7 +196,7 @@ export function useTn() {
   const lang = useLang();
   const t = useT();
   return useCallback(
-    (base: 'apps' | 'cats' | 'sessions' | 'days', n: number) =>
+    (base: 'apps' | 'cats' | 'sessions' | 'streakD', n: number) =>
       t(`${base}${pluralForm(lang, n)}` as Key, { n }),
     [lang, t]
   );

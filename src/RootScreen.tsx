@@ -60,7 +60,10 @@ export function RootScreen() {
       </Pane>
 
       <Pane active={tab === 'stats'}>
-        <StatsScreen scheme={scheme} />
+        {/* `active` нужен экрану, а не только панели: вкладки не
+            размонтируются, и без этого прогресс показывал бы историю
+            в том виде, в каком она была при запуске приложения. */}
+        <StatsScreen scheme={scheme} active={tab === 'stats'} />
       </Pane>
 
       <Pane active={tab === 'more'}>
