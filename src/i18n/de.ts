@@ -52,6 +52,7 @@ export const de: Dict = {
   scheduleTo: 'Bis',
   scheduleSameTime: 'Anfang und Ende müssen sich unterscheiden.',
   day1: 'So', day2: 'Mo', day3: 'Di', day4: 'Mi', day5: 'Do', day6: 'Fr', day7: 'Sa',
+  appsWhatToClose: 'Was geschlossen wird',
   appsTitle: 'Apps',
   statsTitle: 'Bilanz',
   statsHint: 'Stunden im Fokus, deine beste Tageszeit, Serie aufeinanderfolgender Tage.',

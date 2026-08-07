@@ -52,6 +52,7 @@ export const ru: Dict = {
   scheduleTo: 'До',
   scheduleSameTime: 'Начало и конец должны различаться.',
   day1: 'Вс', day2: 'Пн', day3: 'Вт', day4: 'Ср', day5: 'Чт', day6: 'Пт', day7: 'Сб',
+  appsWhatToClose: 'Что закрывать',
   appsTitle: 'Приложения',
   statsTitle: 'Итоги',
   statsHint: 'Сколько часов в фокусе, лучшее время дня, серия дней подряд.',

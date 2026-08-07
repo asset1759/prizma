@@ -52,6 +52,9 @@ export const en = {
   appsIntro: 'Deep Focus closes what is in the chosen list.',
   appsPickerNote: 'Apple never shows us which apps you have — you pick them yourself on its screen. We only remember the choice and give the list a name.',
   appsMultipleLocked: 'Several lists come with the subscription. One is free.',
+  // Эти три больше не показываются: экран настроек обходится без прописей.
+  // Оставлены для онбординга — там их место, и переписывать на шести
+  // языках заново было бы расточительством.
   strictTitle: 'Strict mode',
   strictHint: 'A started session cannot be cut short: Deep Focus stays on and the timer cannot be reset until the phase runs out. That is the whole point — you agree with yourself in advance, while leaving is not yet tempting.',
   strictHonest: 'It is friction, not a lock: the app can always be deleted. Nothing on iOS holds tighter — the friction is enough for the urge to pass.',
@@ -64,6 +67,7 @@ export const en = {
   scheduleTo: 'To',
   scheduleSameTime: 'Start and end must differ.',
   day1: 'Su', day2: 'Mo', day3: 'Tu', day4: 'We', day5: 'Th', day6: 'Fr', day7: 'Sa',
+  appsWhatToClose: 'What to close',
   appsTitle: 'Apps',
   statsTitle: 'Stats',
   statsHint: 'Hours in focus, your best time of day, streak of days in a row.',

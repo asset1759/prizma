@@ -52,6 +52,7 @@ export const fr: Dict = {
   scheduleTo: 'À',
   scheduleSameTime: 'Le début et la fin doivent différer.',
   day1: 'Di', day2: 'Lu', day3: 'Ma', day4: 'Me', day5: 'Je', day6: 'Ve', day7: 'Sa',
+  appsWhatToClose: 'Ce qu’on ferme',
   appsTitle: 'Apps',
   statsTitle: 'Bilan',
   statsHint: 'Heures de focus, votre meilleur moment de la journée, série de jours d’affilée.',
