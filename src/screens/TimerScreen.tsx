@@ -37,7 +37,7 @@ import { record as recordSession } from '../history';
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
-import { useResolvedScheme, useSettings, useT } from '../settings';
+import { useClock, useResolvedScheme, useSettings, useT } from '../settings';
 import { useSubscribed } from '../subscription';
 import { MAX_MIN, TimerRing } from '../components/TimerRing';
 import {
@@ -47,8 +47,6 @@ import {
   SERIF_BOLD,
   SESSIONS_PER_ROUND,
   matchPreset,
-  formatEndTime,
-  formatTimeOfDay,
   withAlpha,
   type Ambient,
   type Phase,
@@ -92,6 +90,7 @@ export function TimerScreen({
   const [now, setNow] = useState(() => Date.now());
 
   const t = useT();
+  const clock = useClock();
   const subscribed = useSubscribed();
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
@@ -299,9 +298,9 @@ export function TimerScreen({
     if (!deepFocus) return;
     dressShield(
       t,
-      endsAt !== null ? formatTimeOfDay(new Date(endsAt)) : formatEndTime(held)
+      endsAt !== null ? clock.time(new Date(endsAt)) : clock.endIn(held)
     );
-  }, [deepFocus, endsAt, held, t]);
+  }, [deepFocus, endsAt, held, t, clock]);
 
   /**
    * Живая активность: таймер на экране блокировки и в Dynamic Island.
@@ -602,9 +601,9 @@ export function TimerScreen({
   const picked = useRef(false);
 
   const enableDeep = useCallback(() => {
-    startBlocking(t, settings.appList, formatEndTime(left));
+    startBlocking(t, settings.appList, clock.endIn(left));
     setDeepFocus(true);
-  }, [left, t, settings.appList]);
+  }, [left, t, clock, settings.appList]);
 
   /**
    * Строгая сессия идёт — оборвать её нельзя.
@@ -780,7 +779,7 @@ export function TimerScreen({
 
   // «Когда я освобожусь» — вопрос практичнее, чем «сколько осталось»:
   // остаток и так виден по отсчёту.
-  const rangeText = `${formatTimeOfDay(startedAt ?? new Date(now))} → ${formatTimeOfDay(
+  const rangeText = `${clock.time(startedAt ?? new Date(now))} → ${clock.time(
     new Date(now + left * 1000)
   )}`;
 

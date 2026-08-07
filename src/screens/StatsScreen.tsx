@@ -21,13 +21,12 @@ import {
   type Period,
   type Session,
 } from '../history';
-import { useSettings, useT, useTn } from '../settings';
+import { useClock, useSettings, useT, useTn } from '../settings';
 import {
   INK,
   PHASES,
   SERIF_BOLD,
   SPECTRUM,
-  formatHour,
   withAlpha,
   type Scheme,
 } from '../theme';
@@ -78,6 +77,7 @@ const MIN_DAYS_FOR_RECORDS = 7;
 export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolean }) {
   const t = useT();
   const tn = useTn();
+  const clock = useClock();
   const insets = useSafeAreaInsets();
   const { settings } = useSettings();
   const ink = INK[scheme];
@@ -471,7 +471,7 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
                   {[0, 6, 12, 18].map((h) => (
                     <View key={h} style={styles.axisCol}>
                       <Text style={[styles.axisText, { color: ink.tertiary }]}>
-                        {formatHour(h)}
+                        {clock.hour(h)}
                       </Text>
                     </View>
                   ))}
@@ -479,8 +479,8 @@ export function StatsScreen({ scheme, active }: { scheme: Scheme; active: boolea
                 {window ? (
                   <Text style={[styles.caption, { color: ink.secondary }]}>
                     {t('statsRhythmWindow', {
-                      a: formatHour(window[0]),
-                      b: formatHour(window[1] % 24),
+                      a: clock.hour(window[0]),
+                      b: clock.hour(window[1] % 24),
                     })}
                   </Text>
                 ) : null}

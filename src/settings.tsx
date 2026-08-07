@@ -6,13 +6,21 @@ import {
   pluralForm,
   resolveLang,
   translate,
+  uses12Hour,
   type Key,
   type Lang,
   type LangSetting,
 } from './i18n';
 import type { ListKey } from './blocking';
 import { DEFAULT_SCHEDULE, type Schedule } from './schedule';
-import { PHASES, type Phase, type Scheme } from './theme';
+import {
+  PHASES,
+  formatEndTime,
+  formatHour,
+  formatTimeOfDay,
+  type Phase,
+  type Scheme,
+} from './theme';
 
 /**
  * Настройки приложения и их хранение.
@@ -199,6 +207,25 @@ export function useTn() {
     (base: 'apps' | 'cats' | 'sessions' | 'streakD', n: number) =>
       t(`${base}${pluralForm(lang, n)}` as Key, { n }),
     [lang, t]
+  );
+}
+
+/**
+ * Часы в том виде, в каком их пишут на языке интерфейса.
+ *
+ * Отдельный хук, потому что формат зависит от языка, а язык — от
+ * настроек: тянуть его в каждую точку вызова руками значило бы рано
+ * или поздно забыть в одной из них.
+ */
+export function useClock() {
+  const hour12 = uses12Hour(useLang());
+  return useMemo(
+    () => ({
+      time: (d: Date) => formatTimeOfDay(d, hour12),
+      hour: (h: number) => formatHour(h, hour12),
+      endIn: (sec: number) => formatEndTime(sec, hour12),
+    }),
+    [hour12]
   );
 }
 
