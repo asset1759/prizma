@@ -41,10 +41,8 @@ import {
   DEEP_FOCUS,
   INK,
   PHASES,
-  SERIF,
   SERIF_BOLD,
   SESSIONS_PER_ROUND,
-  formatClock,
   formatEndTime,
   formatTimeOfDay,
   withAlpha,
@@ -383,6 +381,29 @@ export function TimerScreen({
     });
   }, [editable, settling, dialOn]);
 
+  /**
+   * Центр кольца ведёт та же величина, что и шкалу.
+   *
+   * Окно секунд сужается до нуля, а сами секунды одновременно уезжают
+   * ровно на свою ширину влево — под минуты. Обе величины идут от одного
+   * `dialOn`, поэтому «:00» не тает, а именно прячется за числом:
+   * левый край окна стоит впритык к минутам и обрезает всё, что за него
+   * заехало.
+   */
+  const [secW, setSecW] = useState(0);
+
+  const winStyle = useAnimatedStyle(() => ({ width: secW * (1 - dialOn.value) }));
+
+  const secStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -secW * dialOn.value }],
+  }));
+
+  // Без секунд числу просторнее — оно подрастает, освобождая место обратно
+  // при их появлении. Скачок размера между режимами был ещё одним стыком.
+  const numStyle = useAnimatedStyle(() => ({ fontSize: 58 + 8 * dialOn.value }));
+
+  const minStyle = useAnimatedStyle(() => ({ opacity: dialOn.value }));
+
   const setMinutes = useCallback(
     (m: number) => {
       setDuration(m * 60);
@@ -629,20 +650,46 @@ export function TimerScreen({
               onChangeMinutes={setMinutes}
               labelColor={skin.ink.tertiary}
             >
-              {editable ? (
-                // До старта в центре — выставленная длительность, а не отсчёт:
-                // «25:00» здесь выглядело бы как уже идущая сессия.
-                <>
-                  <Text style={[styles.bigMin, { color: skin.ink.primary }]}>
-                    {Math.round(duration / 60)}
-                  </Text>
-                  <Text style={[styles.minLabel, { color: skin.ink.secondary }]}>МИН</Text>
-                </>
-              ) : (
-                <Text style={[styles.clock, { color: skin.ink.primary }]}>
-                  {formatClock(left)}
-                </Text>
-              )}
+              {/* Минуты стоят на месте, секунды прячутся за ними и оттуда же
+                  выезжают. Никакого затухания: окно секунд обрезает всё, что
+                  левее, поэтому «:00» буквально выходит из-под числа. */}
+              <View style={styles.faceRow}>
+                <Animated.Text style={[styles.faceNum, numStyle, { color: skin.ink.primary }]}>
+                  {Math.floor(left / 60)}
+                </Animated.Text>
+
+                <Animated.View style={[styles.secWindow, winStyle]}>
+                  <Animated.Text
+                    style={[
+                      styles.faceNum,
+                      numStyle,
+                      secStyle,
+                      { color: skin.ink.primary, width: secW || undefined },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {`:${String(left % 60).padStart(2, '0')}`}
+                  </Animated.Text>
+                </Animated.View>
+              </View>
+
+              <Animated.Text
+                style={[styles.minLabel, minStyle, { color: skin.ink.secondary }]}
+              >
+                МИН
+              </Animated.Text>
+
+              {/* Зонд: меряет ширину секунд один раз, чтобы знать, на сколько
+                  их прятать. Лежит вне потока и не виден. */}
+              <Text
+                style={styles.probe}
+                onLayout={(e) => {
+                  const w = Math.ceil(e.nativeEvent.layout.width);
+                  if (w > 0 && w !== secW) setSecW(w);
+                }}
+              >
+                :00
+              </Text>
             </TimerRing>
           </View>
 
@@ -806,25 +853,28 @@ const styles = StyleSheet.create({
   },
   ringSlot: { marginTop: 26 },
 
-  clock: {
-    fontSize: 58,
-    letterSpacing: -1.4,
-    fontVariant: ['tabular-nums'],
-    ...Platform.select({ ios: { fontFamily: SERIF } }),
-  },
-  bigMin: {
-    fontSize: 66,
+  faceRow: { flexDirection: 'row', alignItems: 'center' },
+  // Высота задана жёстко: размер шрифта анимируется, и без этого строка
+  // дышала бы по высоте вместе с ним.
+  faceNum: {
+    lineHeight: 76,
     letterSpacing: -2,
-    lineHeight: 72,
     fontVariant: ['tabular-nums'],
     ...Platform.select({ ios: { fontFamily: SERIF_BOLD } }),
   },
+  // Обрезает всё, что уехало за левый край, — за счёт этого секунды
+  // и выглядят спрятанными под минутами.
+  secWindow: { overflow: 'hidden' },
+  // Подпись занимает место всегда, даже невидимой: иначе число прыгало бы
+  // по вертикали при каждом переходе.
   minLabel: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 2.2,
-    marginTop: 2,
+    height: 14,
   },
+  probe: { position: 'absolute', opacity: 0, fontSize: 58, letterSpacing: -2,
+    ...Platform.select({ ios: { fontFamily: SERIF_BOLD } }) },
 
   pips: { flexDirection: 'row', gap: 7, marginTop: 22 },
   pip: { width: 6, height: 6, borderRadius: 3 },
