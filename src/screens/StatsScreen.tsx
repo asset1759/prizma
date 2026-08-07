@@ -899,7 +899,17 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: '33.333%', paddingHorizontal: 12, paddingVertical: 13 },
   cellLabel: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5, minHeight: 24 },
-  cellValue: { fontSize: 25, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  // Цифры всюду на экране одной антиквой — и здесь, и в заголовке, и на
+  // кольце таймера. Иерархию задаёт кегль: 44 против 25. Задавать её
+  // сменой начертания значило бы объявить эти числа другой породой,
+  // хотя меряют они то же самое.
+  cellValue: {
+    fontSize: 25,
+    fontFamily: SERIF_BOLD,
+    letterSpacing: -0.4,
+    fontVariant: ['tabular-nums'],
+  },
+  // Единицы, наоборот, гротеском: это подписи, а не величины.
   cellValueUnit: { fontSize: 14, fontWeight: '600' },
   cellFoot: { flexDirection: 'row', alignItems: 'baseline', gap: 6, height: 16 },
   cellUnit: { fontSize: 12, fontWeight: '600' },
@@ -921,11 +931,11 @@ const styles = StyleSheet.create({
 
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  big: { fontSize: 22, fontWeight: '700', marginBottom: 1 },
+  big: { fontSize: 25, fontFamily: SERIF_BOLD, letterSpacing: -0.4, marginBottom: 1 },
   note: { fontSize: 12, fontWeight: '600', paddingBottom: 14 },
   recRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   recKey: { fontSize: 12.5, fontWeight: '500' },
-  recVal: { fontSize: 12.5, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  recVal: { fontSize: 13.5, fontFamily: SERIF_BOLD, fontVariant: ['tabular-nums'] },
 
   empty: { fontSize: 15, lineHeight: 21, padding: 18 },
 });
