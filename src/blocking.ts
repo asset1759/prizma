@@ -2,6 +2,9 @@ import {
   UIBlurEffectStyle,
   activitySelectionMetadata,
   blockSelection,
+  configureActions,
+  startMonitoring,
+  stopMonitoring,
   getFamilyActivitySelectionId,
   setFamilyActivitySelectionId,
   isShieldActive,
@@ -257,5 +260,76 @@ export function startBlocking(t: T, key: ListKey, endsAt: string) {
 
 export function stopBlocking() {
   phrase = null;
+  disarmAutoRelease();
   resetBlocks('deep-focus-off');
+}
+
+/* ────────────────────── автоснятие щита в фоне ────────────────────── */
+
+const AUTO_RELEASE = 'prizma.session.release';
+
+/**
+ * Ставит одноразовое окно, которое снимет щит само.
+ *
+ * Без него щит обещал «откроется в 14:25» и не выполнял обещания:
+ * снимал его только JavaScript, а тот в фоне спит. Человек, отложивший
+ * телефон, возвращался к закрытым приложениям и открывал их, лишь
+ * запустив Prizma, — то есть щит держался ровно до тех пор, пока
+ * человек не сделает то, чего щит от него не просил.
+ *
+ * Исполняет снятие расширение DeviceActivityMonitor, приложению для
+ * этого просыпаться не нужно.
+ *
+ * РЕШЕНИЕ, КОТОРОЕ ПРИНИМАЕТ ТОЛЬКО JAVASCRIPT. Действие на конце окна —
+ * `resetBlocks`, а он снимает всё хранилище целиком, включая щит
+ * расписания. Расширение о расписании не знает и узнать не может, значит
+ * выбор «ставить или нет» надо сделать заранее: если сессия кончается
+ * внутри окна расписания, окно и так держит щит дальше и снимет его
+ * своим концом — тогда автоснятие не ставится вовсе. Проверку делает
+ * вызывающий, здесь для неё нет данных.
+ */
+export function armAutoRelease(endsAt: number) {
+  disarmAutoRelease();
+
+  const now = new Date();
+  /**
+   * Округляем вверх до минуты. Интервал у Apple задаётся часом и минутой,
+   * без секунд, и округление вниз открывало бы приложения за полминуты
+   * до конца сессии. Опоздать здесь безопаснее, чем поспешить.
+   */
+  const end = new Date(endsAt + 59_000);
+  end.setSeconds(0, 0);
+
+  // Интервал короче пятнадцати минут Apple не берёт. Значит короткие
+  // сессии — и любые, поставленные регулятором ниже этого, — остаются
+  // без автоснятия: щит там продержится до открытия приложения.
+  if (end.getTime() - now.getTime() < 15 * 60_000) return;
+  // Перешагивающий полночь интервал в тех же сутках не выражается.
+  if (end.getDate() !== now.getDate()) return;
+
+  configureActions({
+    activityName: AUTO_RELEASE,
+    callbackName: 'intervalDidEnd',
+    actions: [{ type: 'resetBlocks' }],
+  });
+
+  startMonitoring(
+    AUTO_RELEASE,
+    {
+      intervalStart: { hour: now.getHours(), minute: now.getMinutes() },
+      intervalEnd: { hour: end.getHours(), minute: end.getMinutes() },
+      repeats: false,
+    },
+    []
+  ).catch(() => {
+    // Не завелось — щит просто снимется при открытии приложения, как раньше.
+  });
+}
+
+export function disarmAutoRelease() {
+  try {
+    stopMonitoring([AUTO_RELEASE]);
+  } catch {
+    // Окна могло не быть — обычное состояние.
+  }
 }

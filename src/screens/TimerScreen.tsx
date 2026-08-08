@@ -28,6 +28,8 @@ import {
   listId,
   listSize,
   startBlocking,
+  armAutoRelease,
+  disarmAutoRelease,
   stopBlocking,
   wearScheduleShield,
 } from '../blocking';
@@ -554,6 +556,27 @@ export function TimerScreen({
      */
     if (settings.notifications.askedAt === null) setAskNotify(true);
   }, [left, running, advance, flash, phase, duration, deepFocus, settings.notifications.askedAt]);
+
+  /**
+   * Автоснятие щита в фоне.
+   *
+   * Ставится и снимается вместе с дедлайном — той же логикой, что и
+   * сигнал о конце фазы, и по той же причине: обнуляют дедлайн шестеро,
+   * и уборка эффекта покрывает всех разом.
+   *
+   * Не ставится, если сессия кончается внутри окна расписания: окно
+   * держит щит дальше и снимет его своим концом, а наше снятие сорвало
+   * бы окно, за которое человек заплатил. Решить это может только
+   * приложение — расширение о расписании не знает.
+   */
+  useEffect(() => {
+    disarmAutoRelease();
+    if (!deepFocus || !running || endsAt === null) return;
+    if (isWindowOpen(settings.schedule, new Date(endsAt))) return;
+
+    armAutoRelease(endsAt);
+    return () => disarmAutoRelease();
+  }, [deepFocus, running, endsAt, settings.schedule]);
 
   /**
    * Сигнал в конце фазы.
