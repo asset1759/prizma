@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { DeviceActivitySelectionSheetViewPersisted } from 'react-native-device-activity';
@@ -51,10 +59,49 @@ export function Onboarding() {
   const [step, setStep] = useState(0);
   const [picking, setPicking] = useState(false);
 
-  const next = () => {
+  /**
+   * Переход между экранами.
+   *
+   * Уходящий просто гаснет на месте, приходящий поднимается снизу —
+   * две разные величины, потому что одной их не развести: при обратном
+   * ходе она дала бы уезжающий вниз текст, а это читается как отмена,
+   * а не как продвижение.
+   *
+   * Первый экран появляется тем же движением: приложение открывается,
+   * а не выпрыгивает.
+   */
+  const fade = useSharedValue(0);
+  const rise = useSharedValue(1);
+
+  useEffect(() => {
+    fade.value = withTiming(1, { duration: 380, easing: Easing.out(Easing.cubic) });
+    rise.value = withTiming(0, { duration: 380, easing: Easing.out(Easing.cubic) });
+  }, [fade, rise]);
+
+  const go = (to: number) => {
     Haptics.selectionAsync().catch(() => {});
-    setStep((s) => s + 1);
+    // Содержимое подменяется в тот кадр, когда оно уже невидимо —
+    // иначе на середине перехода мелькнули бы оба экрана разом.
+    fade.value = withSequence(
+      withTiming(0, { duration: 150, easing: Easing.in(Easing.quad) }, (done) => {
+        if (!done) return;
+        runOnJS(setStep)(to);
+        rise.value = 1;
+      }),
+      withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) })
+    );
+    rise.value = withSequence(
+      withTiming(1, { duration: 150 }),
+      withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) })
+    );
   };
+
+  const flow = useAnimatedStyle(() => ({
+    opacity: fade.value,
+    transform: [{ translateY: rise.value * 14 }],
+  }));
+
+  const next = () => go(step + 1);
 
   const finish = () => {
     Haptics.selectionAsync().catch(() => {});
@@ -73,7 +120,7 @@ export function Onboarding() {
   const allow = async () => {
     Haptics.selectionAsync().catch(() => {});
     await ensureAuthorized();
-    setStep((s) => s + 1);
+    go(step + 1);
   };
 
   const rows = (list: Row[]) => (
@@ -111,7 +158,7 @@ export function Onboarding() {
     <View style={[styles.root, { backgroundColor: ink.ground }]}>
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={[styles.body, { paddingBottom: insets.bottom + 20 }]}>
-          <View style={styles.middle}>
+          <Animated.View style={[styles.middle, flow]}>
             {step === 0 ? (
               <>
                 <Text style={[styles.title, { color: ink.primary }]}>{t('obTitle1')}</Text>
@@ -133,9 +180,9 @@ export function Onboarding() {
                 <Text style={[styles.sub, { color: ink.secondary }]}>{t('obSub4')}</Text>
               </>
             )}
-          </View>
+          </Animated.View>
 
-          <View style={styles.foot}>
+          <Animated.View style={[styles.foot, flow]}>
             {step === 0 || step === 1 ? button(t('obNext'), next) : null}
 
             {step === 2 ? (
@@ -157,7 +204,7 @@ export function Onboarding() {
                 {quiet(t('obLater'), finish)}
               </>
             ) : null}
-          </View>
+          </Animated.View>
         </View>
       </SafeAreaView>
 
