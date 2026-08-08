@@ -48,7 +48,7 @@ export const fr: Dict = {
   strictTitle: 'Mode strict',
   strictSub: 'Une session commencée ne peut pas être interrompue',
   strictHint: 'Une session commencée ne peut pas être interrompue : Deep Focus reste actif et le minuteur ne se réinitialise pas avant la fin de la phase. C’est tout l’intérêt : convenir avec soi-même à l’avance, tant que partir ne tente pas encore.',
-  strictHonest: 'C’est de la friction, pas un verrou : l’app peut toujours être supprimée. Personne ne retient plus fort sur iOS, et la friction suffit pour que l’envie passe.',
+  strictHonest: 'C’est de la friction, pas un verrou : l’app peut être supprimée et le blocage part avec. Cette friction suffit pour que l’envie passe.',
   strictRunning: 'Une session stricte est en cours. Attendez la fin de la phase.',
   scheduleTitle: 'Horaire',
   scheduleOn: 'Horaire',

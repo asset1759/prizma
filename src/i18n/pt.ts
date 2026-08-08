@@ -49,7 +49,7 @@ export const pt: Dict = {
   strictTitle: 'Modo rígido',
   strictSub: 'Uma sessão iniciada não pode ser cortada',
   strictHint: 'Uma sessão iniciada não pode ser cortada: o Deep Focus continua ligado e o timer não zera até a fase terminar. É esse o ponto — combinar consigo antes, enquanto sair ainda não tenta.',
-  strictHonest: 'É atrito, não um cadeado: o app sempre pode ser apagado. No iOS ninguém segura mais forte, e o atrito basta para o impulso passar.',
+  strictHonest: 'É atrito, não um cadeado: o app pode ser apagado e o bloqueio vai junto. Esse atrito basta para o impulso passar.',
   strictRunning: 'Há uma sessão rígida em andamento. Espere a fase terminar.',
   scheduleTitle: 'Programação',
   scheduleOn: 'Programação',

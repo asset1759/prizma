@@ -48,7 +48,7 @@ export const es: Dict = {
   strictTitle: 'Modo estricto',
   strictSub: 'Una sesión empezada no se puede cortar',
   strictHint: 'Una sesión empezada no se puede cortar: Deep Focus sigue activo y el temporizador no se reinicia hasta que la fase termine. Ese es el sentido: acordarlo contigo antes, cuando irse todavía no tienta.',
-  strictHonest: 'Es fricción, no un candado: la app siempre se puede borrar. En iOS nadie sujeta más fuerte, y la fricción basta para que el impulso pase.',
+  strictHonest: 'Es fricción, no un candado: la app se puede borrar y el bloqueo se va con ella. Esa fricción basta para que pase el impulso.',
   strictRunning: 'Hay una sesión estricta en marcha. Espera a que termine la fase.',
   scheduleTitle: 'Horario',
   scheduleOn: 'Horario',

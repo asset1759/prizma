@@ -48,7 +48,7 @@ export const de: Dict = {
   strictTitle: 'Strenger Modus',
   strictSub: 'Eine begonnene Sitzung lässt sich nicht abbrechen',
   strictHint: 'Eine begonnene Sitzung lässt sich nicht abbrechen: Deep Focus bleibt an und der Timer lässt sich nicht zurücksetzen, bis die Phase abgelaufen ist. Genau darum geht es — sich vorher mit sich zu einigen, solange das Weggehen noch nicht lockt.',
-  strictHonest: 'Das ist Reibung, kein Schloss: Die App lässt sich immer löschen. Fester hält auf iOS niemand, und die Reibung reicht, damit der Impuls vorbeigeht.',
+  strictHonest: 'Das ist Reibung, kein Schloss: Die App lässt sich löschen, und die Sperre geht mit. So viel Reibung reicht, damit der Drang vorbeigeht.',
   strictRunning: 'Eine strenge Sitzung läuft. Warte das Ende der Phase ab.',
   scheduleTitle: 'Zeitplan',
   scheduleOn: 'Zeitplan',
