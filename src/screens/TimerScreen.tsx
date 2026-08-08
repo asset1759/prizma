@@ -30,6 +30,7 @@ import {
   startBlocking,
   armAutoRelease,
   disarmAutoRelease,
+  setBlockUntil,
   stopBlocking,
   wearScheduleShield,
 } from '../blocking';
@@ -37,7 +38,7 @@ import {
 import * as LiveActivity from '../../modules/live-activity';
 import { record as recordSession } from '../history';
 import * as Notify from '../notify';
-import { isWindowOpen } from '../schedule';
+import { isWindowOpen, windowEndsAt } from '../schedule';
 
 import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
@@ -572,7 +573,16 @@ export function TimerScreen({
   useEffect(() => {
     disarmAutoRelease();
     if (!deepFocus || !running || endsAt === null) return;
-    if (isWindowOpen(settings.schedule, new Date(endsAt))) return;
+
+    const winEnd = windowEndsAt(settings.schedule, new Date(endsAt));
+    if (winEnd !== null) {
+      // Окно расписания держит щит дальше и снимет его своим концом.
+      // Срок для кнопки щита — конец окна, а не сессии: иначе человек,
+      // упёршись в закрытое после конца помидора, снял бы руками окно,
+      // которое сам же завёл.
+      setBlockUntil(winEnd);
+      return;
+    }
 
     armAutoRelease(endsAt);
     return () => disarmAutoRelease();

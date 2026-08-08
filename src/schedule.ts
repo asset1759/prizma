@@ -66,6 +66,22 @@ const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
 /** Следующий день недели по нумерации Apple: 1 — воскресенье, 7 — суббота */
 const nextDay = (d: number) => (d === 7 ? 1 : d + 1);
 
+/**
+ * Когда кончится идущее окно, миллисекунды эпохи. `null` — окна нет.
+ *
+ * Нужно кнопке щита: если сессия кончилась внутри окна, снимать
+ * блокировку можно не раньше конца окна, иначе одна платная функция
+ * отменит другую руками человека.
+ */
+export function windowEndsAt(s: Schedule, at = new Date()): number | null {
+  if (!isWindowOpen(s, at)) return null;
+  const end = new Date(at);
+  end.setHours(s.to, 0, 0, 0);
+  // Ночное окно: если мы ещё до полуночи, конец наступит завтра.
+  if (s.from > s.to && at.getHours() >= s.from) end.setDate(end.getDate() + 1);
+  return end.getTime();
+}
+
 /** Идёт ли окно прямо сейчас — в том числе если оно перешагнуло полночь */
 export function isWindowOpen(s: Schedule, at = new Date()): boolean {
   if (!s.on || s.days.length === 0 || s.from === s.to) return false;

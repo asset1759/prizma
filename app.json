@@ -45,7 +45,8 @@
         "react-native-device-activity",
         {
           "appleTeamId": "593MRAYJHB",
-          "appGroup": "group.kz.asset.focus"
+          "appGroup": "group.kz.asset.focus",
+          "copyToTargetFolder": false
         }
       ],
       "expo-font",

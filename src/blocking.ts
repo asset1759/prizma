@@ -11,6 +11,7 @@ import {
   requestAuthorization,
   resetBlocks,
   updateShield,
+  userDefaultsSet,
   updateShieldWithId,
   useShieldWithId,
 } from 'react-native-device-activity';
@@ -206,6 +207,44 @@ function shieldLook(t: T, subtitle: string) {
 const SHIELD_ACTIONS = { primary: { behavior: 'close' as const } };
 
 /**
+ * До какого момента блокировка обязана держаться, миллисекунды эпохи.
+ *
+ * Единственное, что расширение щита знает о сессии. Ноль означает
+ * «снимать нечего»: неизвестность трактуется в пользу того, чтобы щит
+ * остался.
+ */
+export const BLOCK_UNTIL_KEY = 'prizma.blockUntil';
+
+/**
+ * Кнопка щита сессии умеет снять блокировку — но только когда сессия
+ * уже кончилась.
+ *
+ * Это главный механизм, а не запасной, и вот почему. Apple вызывает
+ * `intervalDidEnd` не по часам, а когда устройством пользуются: телефон,
+ * лежащий экраном вниз, окно DeviceActivity не разбудит. А расширение
+ * щита система зовёт ровно в ту секунду, когда человек упёрся в закрытое
+ * приложение, — то есть ровно там, где враньё щита становится заметным.
+ * Приложению для этого просыпаться не нужно.
+ *
+ * Проверку времени делает Swift: `shouldExecuteAction` до щита не
+ * доходит — он вызывается только из монитора активностей, а щит зовёт
+ * `executeGenericAction` напрямую, минуя все условия. См. правку в
+ * targets/ShieldAction/ShieldActionExtension.swift.
+ *
+ * `defer`, а не `close`: только он заставляет систему перечитать
+ * состояние блокировки в том же кадре.
+ */
+const SESSION_SHIELD_ACTIONS = {
+  primary: {
+    // Ключ, по которому расширение возьмёт срок. Своё поле, библиотека
+    // о нём не знает — отсюда каст.
+    skipUnlessTimestampPassed: BLOCK_UNTIL_KEY,
+    actions: [{ type: 'resetBlocks' }],
+    behavior: 'defer',
+  },
+} as unknown as typeof SHIELD_ACTIONS;
+
+/**
  * Готовит щит окна расписания и кладёт его под своим именем.
  *
  * Применит его не приложение, а расширение — в момент начала окна, когда
@@ -246,8 +285,8 @@ export function dressShield(t: T, endsAt: string) {
     `${phrase}\n\n${t('shieldOpensAt', { time: endsAt })}`
   );
   // Под своим именем — чтобы расписание могло вернуть свой, не затирая наш.
-  updateShieldWithId(look, SHIELD_ACTIONS, 'session');
-  updateShield(look, SHIELD_ACTIONS);
+  updateShieldWithId(look, SESSION_SHIELD_ACTIONS, 'session');
+  updateShield(look, SESSION_SHIELD_ACTIONS);
 }
 
 export function startBlocking(t: T, key: ListKey, endsAt: string) {
@@ -288,48 +327,100 @@ const AUTO_RELEASE = 'prizma.session.release';
  * своим концом — тогда автоснятие не ставится вовсе. Проверку делает
  * вызывающий, здесь для неё нет данных.
  */
+/**
+ * Назначить срок, раньше которого кнопка щита ничего не снимает.
+ *
+ * Отдельно от `armAutoRelease`, потому что нужен и там, где окно
+ * DeviceActivity не ставится вовсе: сессия внутри окна расписания
+ * кончается, а держать блокировку надо до конца окна.
+ */
+export function setBlockUntil(ms: number) {
+  userDefaultsSet(BLOCK_UNTIL_KEY, ms);
+}
+
 export function armAutoRelease(endsAt: number) {
+  // Первым делом и безусловно: на это опирается кнопка щита, и оно
+  // обязано быть верным, даже если всё остальное ниже не заведётся.
+  userDefaultsSet(BLOCK_UNTIL_KEY, endsAt);
+
   disarmAutoRelease();
 
-  const now = new Date();
   /**
-   * Округляем вверх до минуты. Интервал у Apple задаётся часом и минутой,
-   * без секунд, и округление вниз открывало бы приложения за полминуты
-   * до конца сессии. Опоздать здесь безопаснее, чем поспешить.
+   * Старт строго в будущем и с секундами.
+   *
+   * Прошлая версия передавала только час и минуту текущего момента —
+   * то есть H:M:00, уже прошедшее на несколько десятков секунд. В
+   * компонентах без даты система ищет ближайшее совпадение, и окно
+   * назначалось на завтра. Ни `intervalDidEnd`, ни предупреждение в
+   * этот день не наступали вовсе.
    */
-  const end = new Date(endsAt + 59_000);
-  end.setSeconds(0, 0);
+  const start = new Date(Date.now() + 30_000);
 
-  // Интервал короче пятнадцати минут Apple не берёт. Значит короткие
-  // сессии — и любые, поставленные регулятором ниже этого, — остаются
-  // без автоснятия: щит там продержится до открытия приложения.
-  if (end.getTime() - now.getTime() < 15 * 60_000) return;
-  // Перешагивающий полночь интервал в тех же сутках не выражается.
-  if (end.getDate() !== now.getDate()) return;
+  /**
+   * Конец окна заходит на минуту за конец сессии, а предупреждение
+   * ставится ровно на эту минуту.
+   *
+   * Так снятие приходится на конец сессии, а не на конец окна, и
+   * пятнадцатиминутный минимум Apple перестаёт ограничивать длину
+   * сессии: короткая получает законное окно и своё предупреждение
+   * в нужный момент.
+   */
+  const windowEnd = new Date(Math.max(endsAt, start.getTime() + 15 * 60_000) + 60_000);
+  if (windowEnd.getDate() !== start.getDate()) return;
+
+  const at = (d: Date) => ({
+    hour: d.getHours(),
+    minute: d.getMinutes(),
+    second: d.getSeconds(),
+  });
+
+  const left = Math.max(0, Math.round((windowEnd.getTime() - endsAt) / 1000));
+
+  /**
+   * Запрет снимать раньше конца сессии.
+   *
+   * Проверяется первым в `shouldExecuteAction` и делает раннее снятие
+   * невозможным: ни поспешившее предупреждение, ни `intervalDidEnd`,
+   * вызванный нашим же `stopMonitoring`, щит не тронут.
+   */
+  const release = [{ type: 'resetBlocks' as const, neverTriggerBefore: new Date(endsAt) }];
 
   configureActions({
     activityName: AUTO_RELEASE,
     callbackName: 'intervalDidEnd',
-    actions: [{ type: 'resetBlocks' }],
+    actions: release,
+  });
+  configureActions({
+    activityName: AUTO_RELEASE,
+    callbackName: 'intervalWillEndWarning',
+    actions: release,
   });
 
   startMonitoring(
     AUTO_RELEASE,
     {
-      intervalStart: { hour: now.getHours(), minute: now.getMinutes() },
-      intervalEnd: { hour: end.getHours(), minute: end.getMinutes() },
+      intervalStart: at(start),
+      intervalEnd: at(windowEnd),
       repeats: false,
+      warningTime: {
+        hour: Math.floor(left / 3600),
+        minute: Math.floor((left % 3600) / 60),
+        second: left % 60,
+      },
     },
     []
   ).catch(() => {
-    // Не завелось — щит просто снимется при открытии приложения, как раньше.
+    // Окно не завелось. Не беда: щит всё равно снимется по нажатию
+    // кнопки, а с iOS 26 это и есть основной путь.
   });
 }
 
 export function disarmAutoRelease() {
+  userDefaultsSet(BLOCK_UNTIL_KEY, 0);
   try {
     stopMonitoring([AUTO_RELEASE]);
   } catch {
     // Окна могло не быть — обычное состояние.
   }
 }
+
