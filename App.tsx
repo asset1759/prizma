@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootScreen } from './src/RootScreen';
 import { SettingsProvider } from './src/settings';
+import { SubscriptionProvider } from './src/subscription';
 
 export default function App() {
   // Системные гарнитуры iOS (New York, SF Pro Rounded) в React Native по имени
@@ -25,7 +26,11 @@ export default function App() {
           на одном экране, и жёстко фиксировать бар из-за него не стоит. */}
       <StatusBar style="auto" />
       <SettingsProvider>
-        <RootScreen />
+        {/* Подписка внутри настроек: она читает из них последний известный
+            ответ магазина и пишет туда новый. */}
+        <SubscriptionProvider>
+          <RootScreen />
+        </SubscriptionProvider>
       </SettingsProvider>
     </SafeAreaProvider>
   );

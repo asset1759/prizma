@@ -110,6 +110,14 @@ export type Settings = {
    * Даты нужны, чтобы выдержать паузу между просьбами.
    */
   review: { askedAt: number | null; askedAt2: number | null };
+  /**
+   * Последний известный ответ магазина о подписке.
+   *
+   * Нужен ровно для первых долей секунды после запуска, пока RevenueCat
+   * не ответил: без него заплативший человек каждый раз видел бы замки.
+   * Правом это не является — правом распоряжается магазин.
+   */
+  paidCache: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -127,6 +135,7 @@ const DEFAULTS: Settings = {
   },
   notifications: DEFAULT_NOTIFICATIONS,
   review: { askedAt: null, askedAt2: null },
+  paidCache: false,
 };
 
 const FILE_NAME = 'prizma-settings.json';
@@ -155,6 +164,7 @@ function loadSync(): Settings {
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
       notifications: { ...DEFAULTS.notifications, ...(raw.notifications ?? {}) },
       review: { ...DEFAULTS.review, ...(raw.review ?? {}) },
+      paidCache: raw.paidCache ?? DEFAULTS.paidCache,
     };
   } catch {
     // Битый файл не должен мешать запуску — просто начинаем с чистого листа.
