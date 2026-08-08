@@ -33,6 +33,7 @@ export function Toggle({
   on,
   locked,
   onPress,
+  onLockedPress,
   ink,
   accent,
 }: {
@@ -42,6 +43,14 @@ export function Toggle({
   /** Замок вместо тумблера: возможность видна, но пока не выдана */
   locked?: boolean;
   onPress: () => void;
+  /**
+   * Что делать при нажатии на закрытую строку.
+   *
+   * Без него отказ был молчаливым: хаптик и ничего больше. Строка,
+   * которая ничего не делает и не объясняет, читается как поломка —
+   * а это ровно та строка, которая должна продавать.
+   */
+  onLockedPress?: () => void;
   ink: Ink;
   accent: string;
 }) {
@@ -52,6 +61,7 @@ export function Toggle({
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(
             () => {}
           );
+          onLockedPress?.();
           return;
         }
         Haptics.selectionAsync().catch(() => {});

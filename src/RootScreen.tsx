@@ -7,10 +7,13 @@ import { TabBar, type TabKey } from './components/TabBar';
 import { migrateLegacySelection } from './blocking';
 import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
+import { Paywall } from './screens/Paywall';
 import { StatsScreen } from './screens/StatsScreen';
 import { TimerScreen } from './screens/TimerScreen';
 import { useResolvedScheme, useSettings, useT } from './settings';
 import * as Notify from './notify';
+import { applySchedule } from './schedule';
+import { useSubscription } from './subscription';
 import { INK, PHASES, defaultAmbient, type Ambient } from './theme';
 
 /**
@@ -42,6 +45,24 @@ export function RootScreen() {
    * Язык в зависимостях: тексты уходят в системный запрос заранее, и
    * переключивший язык иначе получал бы напоминания на прежнем.
    */
+  /**
+   * Право кончилось — разоружить платное.
+   *
+   * Расписание живёт в системе и переживает всё, поэтому его окна надо
+   * снять руками; строгий режим отпускает сам, потому что его проверка
+   * теперь включает право. А ЩИТ НЕ СНИМАЕТСЯ: две сессии в день
+   * бесплатны, и снятие щита из-под человека за неоплату — именно тот
+   * класс отказов, за который в этой категории ставят единицы.
+   *
+   * Настройки в файле не трогаются: вернувшийся после паузы в подписке
+   * не должен заводить расписание заново.
+   */
+  const { paid } = useSubscription();
+  useEffect(() => {
+    if (paid) return;
+    applySchedule({ ...settings.schedule, on: false }, settings.appList);
+  }, [paid, settings.schedule, settings.appList]);
+
   const daily = settings.notifications;
   useEffect(() => {
     if (!daily.daily || daily.dailyDays.length === 0) {
@@ -108,6 +129,10 @@ export function RootScreen() {
           />
         </SafeAreaView>
       </View>
+
+      {/* Пейвол поверх всего: он обязан уметь появиться над идущим
+          таймером и уйти, не изменив ничего. Поэтому не вкладка. */}
+      <Paywall />
     </View>
   );
 }

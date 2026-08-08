@@ -20,6 +20,7 @@ import {
 } from '../blocking';
 import { applySchedule, scheduledCount } from '../schedule';
 import { useClock, useSettings, useT, useTn } from '../settings';
+import { useSubscription } from '../subscription';
 import * as Notify from '../notify';
 import { INK, PHASES, SERIF_BOLD, type Scheme } from '../theme';
 import type { Key } from '../i18n';
@@ -43,6 +44,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
   const t = useT();
   const tn = useTn();
   const clock = useClock();
+  const { paid, openPaywall } = useSubscription();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const ink = INK[scheme];
@@ -98,6 +100,23 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
     // Щит окна кладём заранее: применит его расширение в момент начала,
     // когда JavaScript не выполняется и спросить перевод будет не у кого.
     prepareScheduleShield(t, clock.hour(sch.to));
+
+    /**
+     * Без права окна снимаются из системы, но НАСТРОЙКА В ФАЙЛЕ НЕ
+     * ТРОГАЕТСЯ.
+     *
+     * Расписание живёт не в дереве React, а в системе, и переживает и
+     * обновление, и переустановку: оставить его заведённым у того, кто
+     * перестал платить, значит отдать платную функцию бессрочно. Но и
+     * стирать его настройку нельзя — тогда человек, вернувшийся после
+     * паузы в подписке, обнаружит, что расписание надо заводить заново.
+     */
+    if (!paid) {
+      applySchedule({ ...sch, on: false }, list);
+      if (alive) setArmed(0);
+      return;
+    }
+
     applySchedule(sch, list, {
       title: t('notifSchedOnTitle'),
       body: t('notifSchedOnBody', { time: clock.hour(sch.to) }),
@@ -113,7 +132,7 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
     // Язык в зависимостях обязателен: тексты вшиваются в действие
     // заранее, и без него переключивший язык получал бы уведомления на
     // прежнем до следующей правки расписания.
-  }, [sch, list, t, clock]);
+  }, [sch, list, t, clock, paid]);
 
   /**
    * Разрешение спрашиваем до открытия выбора. Без него экран Apple
@@ -193,8 +212,10 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           <Toggle
             label={t('autoDeepTitle')}
             sub={t('autoDeepSub')}
-            on={settings.autoDeep}
+            on={settings.autoDeep && paid}
+            locked={!paid}
             onPress={() => update({ autoDeep: !settings.autoDeep })}
+            onLockedPress={openPaywall}
             ink={ink}
             accent={accent}
           />
@@ -204,8 +225,10 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           <Toggle
             label={t('strictTitle')}
             sub={t('strictSub')}
-            on={settings.strict}
+            on={settings.strict && paid}
+            locked={!paid}
             onPress={() => update({ strict: !settings.strict })}
+            onLockedPress={openPaywall}
             ink={ink}
             accent={accent}
           />
@@ -215,13 +238,17 @@ export function AppsScreen({ scheme }: { scheme: Scheme }) {
           <Toggle
             label={t('scheduleOn')}
             sub={t('scheduleSub')}
-            on={sch.on}
+            on={sch.on && paid}
+            locked={!paid}
             onPress={() => update({ schedule: { ...sch, on: !sch.on } })}
+            onLockedPress={openPaywall}
             ink={ink}
             accent={accent}
           />
 
-          {sch.on ? (
+          {/* Дни, часы и «сообщать» не рисуются без права вовсе: живой
+              контрол, который ничего не меняет, хуже отсутствующего. */}
+          {sch.on && paid ? (
             <>
               <DayRow
                 days={sch.days}

@@ -1,5 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import Purchases, { LOG_LEVEL, type CustomerInfo } from 'react-native-purchases';
+import Purchases, {
+  LOG_LEVEL,
+  type CustomerInfo,
+  type PurchasesPackage,
+} from 'react-native-purchases';
 
 import { useSettings } from './settings';
 
@@ -49,14 +53,25 @@ export const ENTITLEMENT = 'deep_focus';
  * единственный способ увидеть гейты, пока магазин не подключён.
  * `null` — спрашивать RevenueCat по-настоящему.
  */
-const DEV_OVERRIDE: boolean | null = true;
+const DEV_OVERRIDE: boolean | null = false;
+
+/** Сколько сессий с щитом в день бесплатно. Возобновляется каждый день. */
+export const FREE_DEEP_PER_DAY = 2;
 
 type Ctx = {
   /** Есть ли право прямо сейчас */
   paid: boolean;
   /** Ответил ли магазин хоть раз за этот запуск */
   ready: boolean;
+  /** Тарифы. `null` — ещё не спрашивали, пустой массив — магазин не дал */
+  packages: PurchasesPackage[] | null;
   refresh: () => Promise<void>;
+  purchase: (p: PurchasesPackage) => Promise<boolean>;
+  restore: () => Promise<boolean>;
+  /** Пейвол открывается только по прямому действию человека */
+  paywallOpen: boolean;
+  openPaywall: () => void;
+  closePaywall: () => void;
 };
 
 const SubscriptionContext = createContext<Ctx | null>(null);
@@ -76,6 +91,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
    */
   const [paid, setPaid] = useState(settings.paidCache);
   const [ready, setReady] = useState(DEV_OVERRIDE !== null);
+  const [packages, setPackages] = useState<PurchasesPackage[] | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const apply = useCallback(
     (info: CustomerInfo) => {
@@ -105,7 +122,38 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       // Отобрать право за то, что человек в метро, нельзя.
       setReady(true);
     });
+
+    // Тарифы приходят отдельно от права: их может не быть даже у того,
+    // кто заплатил, и наоборот.
+    Purchases.getOfferings()
+      .then((o) => setPackages(o.current?.availablePackages ?? []))
+      .catch(() => setPackages([]));
   }, [apply]);
+
+  /**
+   * Покупка.
+   *
+   * Отказ пользователя — не ошибка и не повод ничего показывать: он
+   * просто передумал. Право обновит слушатель, руками его здесь не
+   * трогаем.
+   */
+  const purchase = useCallback(async (pkg: PurchasesPackage) => {
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      return hasEntitlement(customerInfo);
+    } catch {
+      return false;
+    }
+  }, []);
+
+  /** Восстановление обязательно по правилам Apple 3.1.1 */
+  const restore = useCallback(async () => {
+    try {
+      return hasEntitlement(await Purchases.restorePurchases());
+    } catch {
+      return false;
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (DEV_OVERRIDE !== null || !API_KEY) return;
@@ -116,7 +164,29 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [apply]);
 
-  const value = useMemo(() => ({ paid, ready, refresh }), [paid, ready, refresh]);
+  const openPaywall = useCallback(() => setPaywallOpen(true), []);
+  const closePaywall = useCallback(() => setPaywallOpen(false), []);
+
+  // Закрываем сами, как только право появилось: держать пейвол перед
+  // тем, кто только что заплатил, незачем.
+  useEffect(() => {
+    if (paid) setPaywallOpen(false);
+  }, [paid]);
+
+  const value = useMemo(
+    () => ({
+      paid,
+      ready,
+      packages,
+      refresh,
+      purchase,
+      restore,
+      paywallOpen,
+      openPaywall,
+      closePaywall,
+    }),
+    [paid, ready, packages, refresh, purchase, restore, paywallOpen, openPaywall, closePaywall]
+  );
 
   return (
     <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>

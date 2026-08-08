@@ -36,7 +36,7 @@ import {
 } from '../blocking';
 
 import * as LiveActivity from '../../modules/live-activity';
-import { record as recordSession } from '../history';
+import { all as historyAll, deepToday, record as recordSession } from '../history';
 import * as Notify from '../notify';
 import * as Review from '../review';
 import { isWindowOpen, windowEndsAt } from '../schedule';
@@ -45,7 +45,7 @@ import { GlassPane } from '../components/GlassPane';
 import { HoldButton } from '../components/HoldButton';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useClock, useResolvedScheme, useSettings, useT } from '../settings';
-import { useSubscribed } from '../subscription';
+import { FREE_DEEP_PER_DAY, useSubscription } from '../subscription';
 import { MAX_MIN, TimerRing } from '../components/TimerRing';
 import {
   DEEP_FOCUS,
@@ -100,7 +100,7 @@ export function TimerScreen({
 
   const t = useT();
   const clock = useClock();
-  const subscribed = useSubscribed();
+  const { paid, openPaywall } = useSubscription();
   const insets = useSafeAreaInsets();
   const scheme = useResolvedScheme();
   const { settings, update, setDuration: persistDuration } = useSettings();
@@ -487,14 +487,16 @@ export function TimerScreen({
       setDuration(m * 60);
       setHeld(m * 60);
       /**
-       * Запоминаем только по подписке. Регулятор бесплатный — крутить
-       * может кто угодно, — но выставленное живёт до конца текущей фазы.
-       * Платится не длительность, а её память: получить своё сочетание
-       * обратно завтра и есть то, за что просят денег.
+       * Выставленное запоминается всем.
+       *
+       * Раньше память длительности была платной — это остаток прежней
+       * границы, когда платили за настройки таймера. Теперь платят за
+       * блокировку без лимита и за то, что не даёт передумать, а таймер
+       * бесплатен целиком, включая память.
        */
-      if (subscribed) persistDuration(phase, m * 60);
+      persistDuration(phase, m * 60);
     },
-    [phase, persistDuration, subscribed]
+    [phase, persistDuration]
   );
 
   /**
@@ -772,7 +774,9 @@ export function TimerScreen({
 
   const autoRaise = useRef(() => {});
   autoRaise.current = () => {
-    if (!settings.autoDeep || deepFocus || phase !== 'focus') return;
+    // Гейт нужен здесь отдельно: автоподъём зовёт `enableDeep` мимо
+    // `toggleDeep` и его проверок.
+    if (!paid || !settings.autoDeep || deepFocus || phase !== 'focus') return;
     if (!hasSelection(settings.appList)) return;
     enableDeep();
   };
@@ -783,7 +787,15 @@ export function TimerScreen({
    * Держим и щит, и сброс: выключить блокировку через сброс было бы
    * обходным путём в один жест, и весь смысл режима пропал бы.
    */
-  const lockedByStrict = settings.strict && deepFocus && running;
+  /**
+   * САМАЯ ДОРОГАЯ СТРОКА ВО ВСЁМ ПРИЛОЖЕНИИ.
+   *
+   * Без проверки права человек, включивший строгий режим при активной
+   * подписке, остался бы заперт после её конца: флаг лежит в файле
+   * настроек и сам никуда не денется, а выход не за деньги, а за конец
+   * фазы — то есть заплатить, чтобы выйти, нельзя.
+   */
+  const lockedByStrict = settings.strict && paid && deepFocus && running;
 
   /**
    * Обе плашки наверху показывают настоящее.
@@ -858,6 +870,22 @@ export function TimerScreen({
       return;
     }
 
+    /**
+     * Дневной лимит бесплатных сессий.
+     *
+     * Возобновляется каждый день, навсегда не кончается ничего: сузить
+     * бесплатный слой задним числом — единственная претензия, которую
+     * в этой категории не прощают. Правило объявляется в онбординге
+     * до первого нажатия, поэтому здесь оно не сюрприз.
+     *
+     * Проверяется после разрешения и до выбора: если человеку и так
+     * нечего блокировать, продавать ему безлимит рано.
+     */
+    if (!paid && deepToday(historyAll()) >= FREE_DEEP_PER_DAY) {
+      openPaywall();
+      return;
+    }
+
     // Первый раз — сначала выбор приложений, блокировать пока нечего.
     if (!hasSelection(settings.appList)) {
       picked.current = false;
@@ -866,7 +894,7 @@ export function TimerScreen({
     }
 
     enableDeep();
-  }, [deepFocus, enableDeep, settings.appList, lockedByStrict, refuseStrict, t]);
+  }, [deepFocus, enableDeep, settings.appList, lockedByStrict, refuseStrict, paid, openPaywall, t]);
 
   /**
    * Сброс возвращает текущую фазу к началу — не переключает на следующую.

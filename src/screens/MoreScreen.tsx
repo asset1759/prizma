@@ -15,7 +15,7 @@ import { DayRow, Divider, Hour, Toggle } from '../components/SettingsRows';
 import * as Notify from '../notify';
 import { TAB_BAR_HEIGHT } from '../components/TabBar';
 import { useSettings, useT, type ThemeMode } from '../settings';
-import { useSubscribed } from '../subscription';
+import { useSubscription } from '../subscription';
 import { LANGS, LANG_NAMES, resolveLang, type Key, type LangSetting } from '../i18n';
 import {
   INK,
@@ -41,7 +41,7 @@ const PRESET_LABEL: Record<PresetKey, Key> = {
 
 const PRESET_ORDER: PresetKey[] = ['classic', 'deep', 'brief'];
 
-type SectionKey = 'notifications' | 'appearance' | 'durations' | 'language';
+type SectionKey = 'notifications' | 'appearance' | 'durations' | 'language' | 'subscription';
 
 /**
  * Настройки свёрнуты в раскрывающиеся разделы.
@@ -55,7 +55,7 @@ type SectionKey = 'notifications' | 'appearance' | 'durations' | 'language';
  */
 export function MoreScreen({ scheme }: { scheme: Scheme }) {
   const t = useT();
-  const subscribed = useSubscribed();
+  const { paid, openPaywall } = useSubscription();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettings();
   const ink = INK[scheme];
@@ -257,20 +257,17 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
             />
           ))}
 
-          {/* Своё — по подписке. Строку показываем, а не прячем: скрытая
-              возможность не продаётся, и человек должен видеть, за что
-              ему предлагают заплатить. */}
+          {/* Своё сочетание больше не платное: граница переехала на
+              блокировку, а таймер бесплатен целиком. Строка осталась —
+              она показывает, что выставлено регулятором. */}
           <Choice
             label={t('presetCustom')}
             value={current === null ? set(settings.durations) : undefined}
             on={current === null}
-            locked={!subscribed}
             onPress={() => {}}
             ink={ink}
             accent={accent}
           />
-
-          <Hint text={t('presetLocked')} ink={ink} />
         </Section>
 
         <Section
@@ -293,6 +290,41 @@ export function MoreScreen({ scheme }: { scheme: Scheme }) {
               accent={accent}
             />
           ))}
+        </Section>
+
+        {/* Пятым и последним. Постоянной плашки «вы на бесплатном плане»
+            нигде нет: фоновый упрёк на экране приложения, которое обещало
+            не вмешиваться, — это то же давление, только тихое. */}
+        <Section
+          title={t('sectionSubscription')}
+          summary={paid ? t('paySubActive') : t('paySubUnlock')}
+          open={open === 'subscription'}
+          onToggle={() => toggle('subscription')}
+          scheme={scheme}
+          ink={ink}
+        >
+          {paid ? (
+            <Hint text={t('payFineSub')} ink={ink} />
+          ) : (
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                openPaywall();
+              }}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.rowLabel, { color: ink.primary }]}>
+                {t('payOpen')}
+              </Text>
+              <SymbolView
+                name="chevron.right"
+                size={12}
+                tintColor={ink.tertiary}
+                weight="semibold"
+              />
+            </Pressable>
+          )}
         </Section>
       </ScrollView>
     </SafeAreaView>
