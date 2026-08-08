@@ -118,6 +118,8 @@ export type Settings = {
    * Правом это не является — правом распоряжается магазин.
    */
   paidCache: boolean;
+  /** Прошёл ли человек онбординг первого запуска */
+  onboarded: boolean;
 };
 
 const DEFAULTS: Settings = {
@@ -136,6 +138,7 @@ const DEFAULTS: Settings = {
   notifications: DEFAULT_NOTIFICATIONS,
   review: { askedAt: null, askedAt2: null },
   paidCache: false,
+  onboarded: false,
 };
 
 const FILE_NAME = 'prizma-settings.json';
@@ -165,6 +168,7 @@ function loadSync(): Settings {
       notifications: { ...DEFAULTS.notifications, ...(raw.notifications ?? {}) },
       review: { ...DEFAULTS.review, ...(raw.review ?? {}) },
       paidCache: raw.paidCache ?? DEFAULTS.paidCache,
+      onboarded: raw.onboarded ?? DEFAULTS.onboarded,
     };
   } catch {
     // Битый файл не должен мешать запуску — просто начинаем с чистого листа.

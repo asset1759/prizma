@@ -7,6 +7,7 @@ import { TabBar, type TabKey } from './components/TabBar';
 import { migrateLegacySelection } from './blocking';
 import { AppsScreen } from './screens/AppsScreen';
 import { MoreScreen } from './screens/MoreScreen';
+import { Onboarding } from './screens/Onboarding';
 import { Paywall } from './screens/Paywall';
 import { StatsScreen } from './screens/StatsScreen';
 import { TimerScreen } from './screens/TimerScreen';
@@ -92,6 +93,15 @@ export function RootScreen() {
   }, [systemScheme]);
 
   const handleAmbient = useCallback((next: Ambient) => setAmbient(next), []);
+
+  /**
+   * Онбординг вместо всего остального, а не поверх.
+   *
+   * Так вкладки, таймер и эффекты не монтируются вовсе, пока человек не
+   * дошёл до конца: иначе расписание успело бы завестись, а живая
+   * активность — начаться, ещё до того, как он увидел первый экран.
+   */
+  if (!settings.onboarded) return <Onboarding />;
 
   return (
     <View style={[styles.root, { backgroundColor: INK[scheme].ground }]}>
