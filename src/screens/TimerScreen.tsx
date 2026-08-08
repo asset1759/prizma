@@ -38,6 +38,7 @@ import {
 import * as LiveActivity from '../../modules/live-activity';
 import { record as recordSession } from '../history';
 import * as Notify from '../notify';
+import * as Review from '../review';
 import { isWindowOpen, windowEndsAt } from '../schedule';
 
 import { GlassPane } from '../components/GlassPane';
@@ -555,8 +556,43 @@ export function TimerScreen({
      * изнутри не отменить, а системный диалог поверх только что начатой
      * сессии — ровно то прерывание, против которого продаётся продукт.
      */
-    if (settings.notifications.askedAt === null) setAskNotify(true);
-  }, [left, running, advance, flash, phase, duration, deepFocus, settings.notifications.askedAt]);
+    if (settings.notifications.askedAt === null) {
+      setAskNotify(true);
+      return;
+    }
+
+    /**
+     * Просьба оценить — только на досчитанном фокусе и только в свой
+     * черёд. Не в один момент с вопросом про уведомления: два запроса
+     * подряд превращают награду за досчитанную сессию в анкету.
+     *
+     * Отметку ставим по факту попытки, а не показа: показала Apple
+     * запрос или проглотила по своему лимиту, она не сообщает никому,
+     * и без отметки мы бы спрашивали на каждой сессии подряд.
+     */
+    if (phase === 'focus' && Review.shouldAsk(settings.review, Review.doneCount())) {
+      Review.ask().then((tried) => {
+        if (!tried) return;
+        update({
+          review:
+            settings.review.askedAt === null
+              ? { ...settings.review, askedAt: Date.now() }
+              : { ...settings.review, askedAt2: Date.now() },
+        });
+      });
+    }
+  }, [
+    left,
+    running,
+    advance,
+    flash,
+    phase,
+    duration,
+    deepFocus,
+    settings.notifications.askedAt,
+    settings.review,
+    update,
+  ]);
 
   /**
    * Автоснятие щита в фоне.

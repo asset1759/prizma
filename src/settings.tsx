@@ -102,6 +102,14 @@ export type Settings = {
   durations: Record<Phase, number>;
   /** Что и когда приложению позволено сообщать */
   notifications: Notifications;
+  /**
+   * Когда просили оценить приложение.
+   *
+   * Два поля, а не счётчик: Apple не говорит, показала ли она запрос,
+   * и единственное, что мы знаем достоверно, — когда попытались.
+   * Даты нужны, чтобы выдержать паузу между просьбами.
+   */
+  review: { askedAt: number | null; askedAt2: number | null };
 };
 
 const DEFAULTS: Settings = {
@@ -118,6 +126,7 @@ const DEFAULTS: Settings = {
     long: PHASES.dark.long.duration,
   },
   notifications: DEFAULT_NOTIFICATIONS,
+  review: { askedAt: null, askedAt2: null },
 };
 
 const FILE_NAME = 'prizma-settings.json';
@@ -145,6 +154,7 @@ function loadSync(): Settings {
       schedule: { ...DEFAULTS.schedule, ...(raw.schedule ?? {}) },
       durations: { ...DEFAULTS.durations, ...(raw.durations ?? {}) },
       notifications: { ...DEFAULTS.notifications, ...(raw.notifications ?? {}) },
+      review: { ...DEFAULTS.review, ...(raw.review ?? {}) },
     };
   } catch {
     // Битый файл не должен мешать запуску — просто начинаем с чистого листа.
