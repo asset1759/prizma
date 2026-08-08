@@ -11,7 +11,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { SymbolView, type SFSymbol } from 'expo-symbols';
-import type { PurchasesPackage } from 'react-native-purchases';
+import { PACKAGE_TYPE, type PurchasesPackage } from 'react-native-purchases';
 
 import { GlassPane } from '../components/GlassPane';
 import { all, isDone } from '../history';
@@ -45,11 +45,19 @@ type Kind = 'annual' | 'lifetime' | 'monthly';
 
 const ORDER: Kind[] = ['annual', 'lifetime', 'monthly'];
 
-/** Стандартные имена пакетов RevenueCat */
-const RC_ID: Record<Kind, string> = {
-  annual: '$rc_annual',
-  lifetime: '$rc_lifetime',
-  monthly: '$rc_monthly',
+/**
+ * Сопоставляем по ТИПУ пакета, а не по строке идентификатора.
+ *
+ * Идентификатор задаёт человек в панели RevenueCat, и он там может
+ * оказаться каким угодно: «yearly» вместо «$rc_annual», «pro_year»,
+ * что угодно. Разошлось бы молча — тариф просто не показался бы, и
+ * искать причину пришлось бы в двух местах сразу. Тип же выставляет
+ * сама RevenueCat по длительности продукта.
+ */
+const RC_TYPE: Record<Kind, PACKAGE_TYPE> = {
+  annual: PACKAGE_TYPE.ANNUAL,
+  lifetime: PACKAGE_TYPE.LIFETIME,
+  monthly: PACKAGE_TYPE.MONTHLY,
 };
 
 const TITLE: Record<Kind, Key> = {
@@ -86,7 +94,7 @@ export function Paywall() {
   const byKind = useMemo(() => {
     const m = new Map<Kind, PurchasesPackage>();
     for (const k of ORDER) {
-      const p = packages?.find((x) => x.identifier === RC_ID[k]);
+      const p = packages?.find((x) => x.packageType === RC_TYPE[k]);
       if (p) m.set(k, p);
     }
     return m;
