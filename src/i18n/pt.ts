@@ -192,6 +192,9 @@ export const pt: Dict = {
   shieldTitle: 'Você está em imersão',
   shieldOpensAt: 'Este app abre às {time}.',
   shieldButton: 'Voltar ao trabalho',
+  shieldDoneTitle: 'A sessão terminou',
+  shieldDoneSub: 'Toque para abrir',
+  shieldDoneButton: 'Abrir',
 
   encouragement1: 'Continue. Seu sonho vale isso.',
   encouragement2: 'Você mesmo escolheu. Vá até o fim.',

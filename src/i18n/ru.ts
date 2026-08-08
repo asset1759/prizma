@@ -191,6 +191,9 @@ export const ru: Dict = {
   shieldTitle: 'Ты в погружении',
   shieldOpensAt: 'Приложение откроется в {time}.',
   shieldButton: 'Вернуться к работе',
+  shieldDoneTitle: 'Сессия закончилась',
+  shieldDoneSub: 'Нажми, чтобы открыть',
+  shieldDoneButton: 'Открыть',
 
   encouragement1: 'Продолжай работать, стремись к своей мечте.',
   encouragement2: 'Ты сам это выбрал. Дойди до конца.',

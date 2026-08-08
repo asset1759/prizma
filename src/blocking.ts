@@ -284,9 +284,26 @@ export function dressShield(t: T, endsAt: string) {
     // последним, что человек читает перед тем, как закрыть щит.
     `${phrase}\n\n${t('shieldOpensAt', { time: endsAt })}`
   );
+  /**
+   * Вторая пара строк — на случай, когда сессия уже кончилась, а щит
+   * ещё стоит: приложение было закрыто, снять его было некому.
+   *
+   * «Приложение откроется в 14:25» в 14:30 — неправда дважды: время
+   * прошло, и само оно не откроется, нужно нажать. Расширение щита
+   * подставит эти строки, увидев, что срок вышел; собственных переводов
+   * у него нет и быть не может.
+   */
+  const expiring = {
+    ...look,
+    expiresAtKey: BLOCK_UNTIL_KEY,
+    expiredTitle: t('shieldDoneTitle'),
+    expiredSubtitle: t('shieldDoneSub'),
+    expiredButtonLabel: t('shieldDoneButton'),
+  } as typeof look;
+
   // Под своим именем — чтобы расписание могло вернуть свой, не затирая наш.
-  updateShieldWithId(look, SESSION_SHIELD_ACTIONS, 'session');
-  updateShield(look, SESSION_SHIELD_ACTIONS);
+  updateShieldWithId(expiring, SESSION_SHIELD_ACTIONS, 'session');
+  updateShield(expiring, SESSION_SHIELD_ACTIONS);
 }
 
 export function startBlocking(t: T, key: ListKey, endsAt: string) {

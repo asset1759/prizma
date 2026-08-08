@@ -208,6 +208,9 @@ export const en = {
   shieldTitle: "You're in Deep Focus",
   shieldOpensAt: 'This app opens at {time}.',
   shieldButton: 'Back to work',
+  shieldDoneTitle: 'Session is over',
+  shieldDoneSub: 'Tap to open',
+  shieldDoneButton: 'Open',
 
   encouragement1: 'Keep going. Your dream is worth it.',
   encouragement2: 'You chose this yourself. See it through.',

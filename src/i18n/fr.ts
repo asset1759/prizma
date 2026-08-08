@@ -191,6 +191,9 @@ export const fr: Dict = {
   shieldTitle: 'Vous êtes en immersion',
   shieldOpensAt: 'Cette app s’ouvrira à {time}.',
   shieldButton: 'Retour au travail',
+  shieldDoneTitle: 'La session est finie',
+  shieldDoneSub: 'Touche pour ouvrir',
+  shieldDoneButton: 'Ouvrir',
 
   encouragement1: 'Continuez. Votre rêve le vaut.',
   encouragement2: 'Vous l’avez choisi vous-même. Allez au bout.',

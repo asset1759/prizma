@@ -191,6 +191,9 @@ export const de: Dict = {
   shieldTitle: 'Du bist in der Vertiefung',
   shieldOpensAt: 'Diese App öffnet um {time}.',
   shieldButton: 'Zurück an die Arbeit',
+  shieldDoneTitle: 'Sitzung ist vorbei',
+  shieldDoneSub: 'Zum Öffnen tippen',
+  shieldDoneButton: 'Öffnen',
 
   encouragement1: 'Mach weiter. Dein Traum ist es wert.',
   encouragement2: 'Du hast es selbst gewählt. Zieh es durch.',
