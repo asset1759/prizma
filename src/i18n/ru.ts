@@ -13,6 +13,7 @@ export const ru: Dict = {
 
   minutesShort: 'МИН',
   holdToReset: 'Держите, чтобы сбросить',
+  holdToFocus: 'Держите, чтобы вернуться к фокусу',
   blockingOn: 'Включено',
   blockingOff: 'Выключено',
   blockedCount: '{count} закрыто',

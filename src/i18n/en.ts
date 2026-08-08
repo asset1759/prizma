@@ -24,6 +24,7 @@ export const en = {
   // Экран таймера
   minutesShort: 'MIN',
   holdToReset: 'Hold to reset',
+  holdToFocus: 'Hold to go back to focus',
   blockingOn: 'On',
   blockingOff: 'Off',
   blockedCount: '{count} blocked',

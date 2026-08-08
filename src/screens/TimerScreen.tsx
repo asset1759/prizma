@@ -841,6 +841,29 @@ export function TimerScreen({
     }
 
     /**
+     * С перерыва «Сбросить» возвращает к фокусу, а не начинает отдых
+     * заново.
+     *
+     * Перезапускать перерыв незачем — это единственное действие на
+     * экране, которое ничего не значит. А нужное действие после
+     * досчитанного фокуса ровно одно и очень частое: сесть снова, не
+     * дожидаясь конца отдыха. До сих пор его не было вовсе, и кнопка
+     * на перерыве вдобавок стояла погашенной.
+     *
+     * Правило получается одно на обе фазы: «Сбросить» всегда возвращает
+     * к свежему фокусу. На фокусе — начинает его заново, на перерыве —
+     * заканчивает отдых.
+     *
+     * Круги пройденных сессий не трогаем: досчитанный фокус засчитан,
+     * и стирать его из-за того, что человек отказался от перерыва,
+     * значило бы отнимать сделанное.
+     */
+    if (phase !== 'focus') {
+      goToPhase('focus', true);
+      return;
+    }
+
+    /**
      * Прерванная сессия тоже пишется. Не ради того, чтобы её показать —
      * в итогах и столбиках её не будет, — а ради знаменателя: без
      * прерванных доля доведённых до конца всегда ровно сто процентов,
@@ -880,7 +903,17 @@ export function TimerScreen({
         if (finished) runOnJS(setSettling)(false);
       }
     );
-  }, [deepFocus, phase, duration, left, startedAt, progress, lockedByStrict, refuseStrict]);
+  }, [
+    deepFocus,
+    phase,
+    duration,
+    left,
+    startedAt,
+    progress,
+    goToPhase,
+    lockedByStrict,
+    refuseStrict,
+  ]);
 
   /**
    * Подсказка про удержание. Живёт здесь, а не в кнопке: ей нужно место
@@ -916,7 +949,12 @@ export function TimerScreen({
   }));
 
   /** Сбрасывать нечего, пока фаза стоит нетронутой на полном круге */
-  const canReset = running || left < duration;
+  /**
+   * На перерыве кнопка активна всегда: там она означает «вернуться к
+   * фокусу», а это действие доступно с первой секунды отдыха — ради
+   * него человек её и ищет.
+   */
+  const canReset = running || left < duration || phase !== 'focus';
 
   useEffect(() => {
     onAmbientChange?.({
@@ -1102,7 +1140,7 @@ export function TimerScreen({
             style={[styles.hint, hintStyle, { color: skin.ink.secondary }]}
             pointerEvents="none"
           >
-            {t('holdToReset')}
+            {t(phase === 'focus' ? 'holdToReset' : 'holdToFocus')}
           </Animated.Text>
 
           <View style={styles.dockRow}>

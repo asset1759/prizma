@@ -14,6 +14,7 @@ export const pt: Dict = {
 
   minutesShort: 'MIN',
   holdToReset: 'Segure para zerar',
+  holdToFocus: 'Segure para voltar ao foco',
   blockingOn: 'Ligado',
   blockingOff: 'Desligado',
   blockedCount: '{count} bloqueados',
