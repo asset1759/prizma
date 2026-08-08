@@ -149,18 +149,31 @@ export function Paywall() {
     >
       <View style={[styles.root, { backgroundColor: ink.ground }]}>
         <SafeAreaView style={styles.root} edges={['top']}>
+          {/* Тем же стеклом, что и чипы на таймере. Голый крестик и голый
+              текст висели в воздухе: на экране, где всё остальное собрано,
+              это читалось как недоделка. Обе кнопки одной высоты — так они
+              становятся парой, а не двумя случайными элементами. */}
           <View style={styles.top}>
-            <Pressable onPress={closePaywall} hitSlop={14} accessibilityRole="button">
-              <SymbolView name="xmark" size={15} tintColor={ink.tertiary} weight="semibold" />
+            <Pressable onPress={closePaywall} hitSlop={10} accessibilityRole="button">
+              <GlassPane style={styles.close} radius={17} scheme={scheme}>
+                <SymbolView
+                  name="xmark"
+                  size={13}
+                  tintColor={ink.secondary}
+                  weight="semibold"
+                />
+              </GlassPane>
             </Pressable>
             <Pressable
               onPress={() => act(restore)}
-              hitSlop={14}
+              hitSlop={10}
               accessibilityRole="button"
             >
-              <Text style={[styles.restore, { color: ink.secondary }]}>
-                {t('payRestore')}
-              </Text>
+              <GlassPane style={styles.restoreChip} radius={17} scheme={scheme}>
+                <Text style={[styles.restore, { color: ink.secondary }]}>
+                  {t('payRestore')}
+                </Text>
+              </GlassPane>
             </Pressable>
           </View>
 
@@ -337,8 +350,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  close: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  restoreChip: {
+    height: 34,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    overflow: 'hidden',
   },
   restore: { fontSize: 12.5, fontWeight: '600' },
 
@@ -348,7 +374,7 @@ const styles = StyleSheet.create({
     lineHeight: 46,
     fontFamily: SERIF_BOLD,
     letterSpacing: -0.8,
-    marginTop: 6,
+    marginTop: 10,
   },
   sub: { fontSize: 12.5, lineHeight: 17, marginTop: 8 },
 
